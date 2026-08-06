@@ -38,12 +38,18 @@ class FlowLane {
 
     if (cotData) {
       // Assuming cotData gives net long/short as a percentage of open interest
-      if (cotData.netLongPct > 10) {
+      if (cotData.netLongPct > 40) {
         score += 20;
         basis.push('Institutional COT heavily net long');
-      } else if (cotData.netShortPct > 10) {
+      } else if (cotData.netLongPct > 10) {
+        score += 10;
+        basis.push('Institutional COT mildly net long');
+      } else if (cotData.netShortPct > 40) {
         score -= 20;
         basis.push('Institutional COT heavily net short');
+      } else if (cotData.netShortPct > 10) {
+        score -= 10;
+        basis.push('Institutional COT mildly net short');
       }
     } else {
       basis.push('No COT data available');
