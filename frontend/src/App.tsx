@@ -5,7 +5,6 @@ import { LanePanel } from './components/LanePanel';
 import { KeyDriversPanel } from './components/KeyDriversPanel';
 import { CotBadge } from './components/CotBadge';
 import { AlertModal } from './components/AlertModal';
-import { Activity } from 'lucide-react';
 
 interface LaneData {
   bias: 'bull' | 'bear' | 'mixed';
@@ -53,8 +52,8 @@ function App() {
       <header className="shrink-0 z-50 bg-darker/95 backdrop-blur-md border-b border-gray-800 px-3 py-2 md:px-6 md:py-3">
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2">
-            <Activity className="w-6 h-6 md:w-7 md:h-7 text-primary" />
-            <h1 className="text-lg md:text-xl font-bold tracking-tight text-white">
+            <img src="/logo.png" alt="MairaFX Logo" className="h-8 md:h-10 object-contain" />
+            <h1 className="text-lg md:text-xl font-bold tracking-tight text-white hidden md:block">
               MairaFX<span className="text-primary">.ai</span>
             </h1>
           </div>
