@@ -156,8 +156,8 @@ class Synthesizer {
   /**
    * Call Gemini with the full ICT context and return an institutional-grade narrative.
    */
-  async getAiNarrative(symbol, snapshot, zones, mtfZones, econCalendar) {
-    const cacheKey = `${symbol}_narrative`;
+  async getAiNarrative(symbol, snapshot, zones, mtfZones, econCalendar, mode = 'strict') {
+    const cacheKey = `${symbol}_narrative_${mode}`;
     const cached   = this.cache.get(cacheKey);
     const now      = Date.now();
 
@@ -168,6 +168,15 @@ class Synthesizer {
 
     const ictContext = this._buildIctContext(zones, snapshot, mtfZones, econCalendar);
 
+    const modeInstructions = mode === 'aggressive'
+      ? `AGGRESSIVE SCALPER MODE:
+- You are a high-frequency scalper. Ignore the Daily/4H MTF alignment if there is a clear 15m/1H setup.
+- You only need 1 or 2 ICT factors to align (e.g., a simple liquidity sweep or FVG fill).
+- Take setups even if they are counter-trend.`
+      : `STRICT INSTITUTIONAL MODE:
+- MULTI-TIMEFRAME ALIGNMENT: Do not call LONG if Daily/4H trend is strongly Bearish. Do not call SHORT if Daily/4H is strongly Bullish.
+- CONFLUENCE: Only call LONG or SHORT when at least 3 ICT factors align (MTF + liquidity + OB/FVG). Otherwise call WAIT.`;
+
     const prompt = `
 You are a professional institutional forex trader who trades using the ICT (Inner Circle Trader) methodology.
 You are given structured market data and must produce a concise, high-conviction trading analysis.
@@ -176,22 +185,22 @@ Output ONLY strict JSON matching this schema (no extra keys):
 {
   "verdict": "WAIT" | "LONG" | "SHORT",
   "reasoning": "<string — max 100 words, ICT language>",
-  "setup": "<string — specific entry model, e.g. 'Bearish OB retest at 1.1521 targeting SSL at 1.1468'>",
+  "setup": "<string — specific entry model>",
   "watch_zone": "<string — specific price level or zone to watch>",
   "invalidation": ["<string>", "<string>"],
   "risk_sizing": "<string — e.g. 'Risk 35 pips (1% = 0.28 Lots per $10k)'>"
 }
 
 ICT Analytical Framework (apply strictly):
-1. MULTI-TIMEFRAME ALIGNMENT: Do not call LONG if Daily/4H trend is strongly Bearish. Do not call SHORT if Daily/4H is strongly Bullish.
+1. ${modeInstructions}
 2. ECONOMIC CALENDAR: If high-impact news is dropping soon today, default to WAIT unless the setup is pristine.
 3. KILL ZONES: Entries are highest probability during London or NY Killzones. Be highly skeptical of Asian Range breakouts.
 4. VOLUME POC: Price is drawn to the Point of Control. Use it as a magnet target or strong support/resistance.
 5. LIQUIDITY FIRST: Price is always seeking liquidity. Identify where BSL or SSL clusters sit.
 6. PREMIUM / DISCOUNT: Never go long in premium or short in discount without extreme confluence.
-7. CONFLUENCE: Only call LONG or SHORT when at least 3 ICT factors align (MTF + liquidity + OB/FVG). Otherwise call WAIT.
-8. RISK SIZING: If a setup exists, calculate the pip difference between current price and invalidation. Output position size assuming 1% risk on a $10,000 account balance (Standard Lot = $10/pip).
-9. LANGUAGE: State analysis plainly. If WAIT, set setup to "No valid ICT entry model present" and risk_sizing to "N/A".
+7. RISK SIZING: If a setup exists, calculate the pip difference between current price and invalidation. Output position size assuming 1% risk on a $10,000 account balance (Standard Lot = $10/pip).
+8. PENDING SETUPS (IF/THEN): If verdict is WAIT, the 'setup' field MUST contain a strict 'If/Then' pending order limit scenario. E.g., 'WAIT until price sweeps SSL at 1.0850, THEN enter LONG targeting 1.0900'. NEVER output 'No valid setup'.
+9. LANGUAGE: State analysis plainly without hesitation.
 
 Market Data Input:
 ${JSON.stringify(ictContext, null, 2)}

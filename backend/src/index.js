@@ -237,8 +237,9 @@ async function bootstrap() {
       const apiKey = process.env.FINNHUB_API_KEY;
       const econCalendar = apiKey ? await fetchEconomicCalendar(apiKey) : [];
 
+      const mode = req.query.mode || 'strict';
       const snapshot = await synth.evaluateRuleBased(symbol, timeframe, price, zones);
-      const aiResult = await synth.getAiNarrative(symbol, snapshot, zones, mtfZones, econCalendar);
+      const aiResult = await synth.getAiNarrative(symbol, snapshot, zones, mtfZones, econCalendar, mode);
 
       res.json(aiResult);
     } catch (err) {

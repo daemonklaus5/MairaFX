@@ -70,12 +70,13 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
   const [data, setData]       = useState<AiResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
+  const [mode, setMode]       = useState<'strict' | 'aggressive'>('strict');
 
   const handleAnalyze = async () => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`/api/analyze/${symbol}/${timeframe}`, { method: 'POST' });
+      const res = await fetch(`/api/analyze/${symbol}/${timeframe}?mode=${mode}`, { method: 'POST' });
       if (!res.ok) {
         // Try to get the actual error message from the response body
         let errMsg = `Server error (${res.status})`;
@@ -113,9 +114,29 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
           </div>
         </div>
 
-        <button
-          id="analyze-button"
-          onClick={handleAnalyze}
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="flex bg-gray-900 rounded-md p-0.5 border border-gray-800">
+            <button
+              onClick={() => setMode('strict')}
+              className={`px-2.5 py-1 rounded text-[10px] font-medium transition-colors ${
+                mode === 'strict' ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              Strict
+            </button>
+            <button
+              onClick={() => setMode('aggressive')}
+              className={`px-2.5 py-1 rounded text-[10px] font-medium transition-colors ${
+                mode === 'aggressive' ? 'bg-orange-500/20 text-orange-400' : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              Aggressive
+            </button>
+          </div>
+
+          <button
+            id="analyze-button"
+            onClick={handleAnalyze}
           disabled={loading}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all shrink-0 ${
             loading
@@ -126,6 +147,7 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
           <Sparkles className="w-3 h-3" />
           {loading ? 'Analyzing…' : data ? 'Re-Analyze' : 'Analyze'}
         </button>
+        </div>
       </div>
 
       {/* ── Error ── */}
