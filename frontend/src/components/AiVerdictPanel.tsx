@@ -114,11 +114,25 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="flex bg-gray-900 rounded-md p-0.5 border border-gray-800">
+        <div className="flex flex-col items-end gap-2 shrink-0">
+          <button
+            id="analyze-button"
+            onClick={handleAnalyze}
+            disabled={loading}
+            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 w-full rounded-md text-xs font-bold transition-all ${
+              loading
+                ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                : 'bg-primary hover:bg-emerald-400 text-darker shadow-[0_0_12px_rgba(0,209,178,0.25)] hover:shadow-[0_0_22px_rgba(0,209,178,0.45)]'
+            }`}
+          >
+            <Sparkles className="w-3 h-3" />
+            {loading ? 'Analyzing…' : data ? 'Re-Analyze' : 'Analyze'}
+          </button>
+
+          <div className="flex bg-gray-900 rounded-md p-0.5 border border-gray-800 w-full">
             <button
               onClick={() => setMode('strict')}
-              className={`px-2.5 py-1 rounded text-[10px] font-medium transition-colors ${
+              className={`flex-1 px-2.5 py-1 rounded text-[10px] font-medium transition-colors ${
                 mode === 'strict' ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'
               }`}
             >
@@ -126,27 +140,13 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
             </button>
             <button
               onClick={() => setMode('aggressive')}
-              className={`px-2.5 py-1 rounded text-[10px] font-medium transition-colors ${
+              className={`flex-1 px-2.5 py-1 rounded text-[10px] font-medium transition-colors ${
                 mode === 'aggressive' ? 'bg-orange-500/20 text-orange-400' : 'text-gray-500 hover:text-gray-300'
               }`}
             >
               Aggressive
             </button>
           </div>
-
-          <button
-            id="analyze-button"
-            onClick={handleAnalyze}
-          disabled={loading}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all shrink-0 ${
-            loading
-              ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
-              : 'bg-primary hover:bg-emerald-400 text-darker shadow-[0_0_12px_rgba(0,209,178,0.25)] hover:shadow-[0_0_22px_rgba(0,209,178,0.45)]'
-          }`}
-        >
-          <Sparkles className="w-3 h-3" />
-          {loading ? 'Analyzing…' : data ? 'Re-Analyze' : 'Analyze'}
-        </button>
         </div>
       </div>
 
