@@ -6,7 +6,7 @@ const https = require('https');
  */
 async function fetchForexNews(apiKey, limit = 10) {
   return new Promise((resolve, reject) => {
-    const url = `https://finnhub.io/api/v1/news?category=forex&token=${apiKey}`;
+    const url = `https://finnhub.io/api/v1/news?category=general&token=${apiKey}`;
     https.get(url, (res) => {
       let raw = '';
       res.on('data', (chunk) => { raw += chunk; });
