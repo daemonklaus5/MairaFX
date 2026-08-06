@@ -110,7 +110,7 @@ export function Chart({ symbol, timeframe }: ChartProps) {
   }, [indicators, currentTick]);
 
   return (
-    <div className="relative w-full h-[600px] bg-panel rounded-lg overflow-hidden border border-gray-800">
+    <div className="relative w-full h-[350px] md:h-[600px] bg-panel rounded-lg overflow-hidden border border-gray-800">
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-10 pointer-events-none">
         <div className="flex items-center gap-4 bg-dark/80 px-4 py-2 rounded-md backdrop-blur-sm pointer-events-auto border border-gray-800">
