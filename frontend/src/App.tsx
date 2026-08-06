@@ -31,20 +31,6 @@ function App() {
             >
               {pairs.map(p => <option key={p} value={p}>{p.replace('_', '/')}</option>)}
             </select>
-            
-            <div className="flex items-center bg-panel border border-gray-700 rounded-md p-0.5 md:p-1">
-              {timeframes.map(tf => (
-                <button
-                  key={tf}
-                  onClick={() => setTimeframe(tf)}
-                  className={`px-2 py-1 md:px-3 md:py-1 rounded-sm text-xs md:text-sm font-medium transition-colors ${
-                    timeframe === tf ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-200'
-                  }`}
-                >
-                  {tf}
-                </button>
-              ))}
-            </div>
             <div className="hidden md:block">
               <CotBadge symbol={symbol} />
             </div>
