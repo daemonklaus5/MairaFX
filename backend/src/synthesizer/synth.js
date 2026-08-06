@@ -172,8 +172,12 @@ ${JSON.stringify(ictContext, null, 2)}
 `;
 
     try {
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) throw new Error('No GEMINI_API_KEY configured');
+      const rawKey = process.env.GEMINI_API_KEY || '';
+      const apiKeys = rawKey.split(',').map(k => k.trim()).filter(Boolean);
+      if (apiKeys.length === 0) throw new Error('No GEMINI_API_KEY configured');
+      
+      // Randomly select a key to load-balance across multiple free tier accounts
+      const apiKey = apiKeys[Math.floor(Math.random() * apiKeys.length)];
 
       const ai = new GoogleGenAI({ apiKey });
 
