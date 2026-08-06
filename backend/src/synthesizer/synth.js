@@ -173,16 +173,18 @@ ${JSON.stringify(ictContext, null, 2)}
 
     try {
       const rawKey = process.env.GEMINI_API_KEY || '';
-      const apiKeys = rawKey.split(',').map(k => k.trim()).filter(Boolean);
-      if (apiKeys.length === 0) throw new Error('No GEMINI_API_KEY configured');
+      let availableKeys = rawKey.split(',').map(k => k.trim()).filter(Boolean);
+      if (availableKeys.length === 0) throw new Error('No GEMINI_API_KEY configured');
       
-      // Randomly select a key to load-balance across multiple free tier accounts
-      const apiKey = apiKeys[Math.floor(Math.random() * apiKeys.length)];
+      // Helper to call Gemini with automatic key rotation on 429
+      const callGemini = async () => {
+        if (availableKeys.length === 0) throw new Error('All available Gemini API keys exhausted (429)');
+        
+        // Pick a random key from the available pool
+        const keyIndex = Math.floor(Math.random() * availableKeys.length);
+        const apiKey = availableKeys[keyIndex];
+        const ai = new GoogleGenAI({ apiKey });
 
-      const ai = new GoogleGenAI({ apiKey });
-
-      // Helper to call Gemini with one automatic retry on 429
-      const callGemini = async (retryOnce = true) => {
         try {
           return await ai.models.generateContent({
             model:    'gemini-2.0-flash-lite',
@@ -191,10 +193,13 @@ ${JSON.stringify(ictContext, null, 2)}
           });
         } catch (err) {
           const is429 = err?.status === 429 || (err?.message || '').includes('429') || (err?.message || '').includes('quota');
-          if (is429 && retryOnce) {
-            console.log('Gemini 429 — waiting 10s then retrying...');
-            await new Promise(r => setTimeout(r, 10000));
-            return callGemini(false); // one retry
+          if (is429) {
+            console.log(`Gemini 429 on key ending in ${apiKey.slice(-4)} — removing from pool and retrying...`);
+            // Remove the exhausted key from the pool
+            availableKeys.splice(keyIndex, 1);
+            // Wait 2 seconds before retrying with a new key
+            await new Promise(r => setTimeout(r, 2000));
+            return callGemini(); 
           }
           throw err;
         }
