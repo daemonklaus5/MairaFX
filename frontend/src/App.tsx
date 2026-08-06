@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Chart } from './components/Chart';
 import { AiVerdictPanel } from './components/AiVerdictPanel';
 import { LanePanel } from './components/LanePanel';
@@ -32,14 +32,14 @@ function App() {
   const timeframes = ['1m', '5m', '15m', '1H', '4H', '1D'];
 
   // Reset lane data when symbol or timeframe changes
-  const handleSymbolChange = (val: string) => {
-    setSymbol(val);
+  useEffect(() => {
+    // Auto-fetch rule-based lanes immediately on change
     setLaneData(null);
-  };
-  const handleTimeframeChange = (val: string) => {
-    setTimeframe(val);
-    setLaneData(null);
-  };
+    fetch(`/api/lanes/${symbol}/${timeframe}`)
+      .then(res => res.json())
+      .then(data => setLaneData(data))
+      .catch(console.error);
+  }, [symbol, timeframe]);
 
   // Called by AiVerdictPanel after a successful analyze
   const handleAnalyzed = (lanes: LanesState['lanes']) => {
@@ -62,7 +62,7 @@ function App() {
           <div className="flex items-center gap-2 md:gap-4 flex-wrap">
             <select
               value={symbol}
-              onChange={(e) => handleSymbolChange(e.target.value)}
+              onChange={(e) => setSymbol(e.target.value)}
               className="bg-panel border border-gray-700 rounded-md px-2 py-1.5 md:px-4 md:py-2 text-sm focus:outline-none focus:border-primary transition-colors"
             >
               {pairs.map(p => <option key={p} value={p}>{p.replace('_', '/')}</option>)}
@@ -72,7 +72,7 @@ function App() {
               {timeframes.map(tf => (
                 <button
                   key={tf}
-                  onClick={() => handleTimeframeChange(tf)}
+                  onClick={() => setTimeframe(tf)}
                   className={`px-2 py-1 md:px-3 md:py-1 rounded-sm text-xs font-medium transition-colors ${
                     timeframe === tf ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-200'
                   }`}

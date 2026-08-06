@@ -72,7 +72,7 @@ export function LanePanel({ data }: { data: LanesResponse | null }) {
             {lane.tier}
           </span>
         </div>
-        <div className="text-[10px] text-gray-400 line-clamp-2 leading-snug">
+        <div className="text-[10px] text-gray-400 leading-snug">
           {lane.basis}
         </div>
       </div>
