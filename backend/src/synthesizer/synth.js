@@ -177,7 +177,7 @@ ${JSON.stringify(ictContext, null, 2)}
 
       const ai       = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
-        model:    'gemini-2.0-flash',
+        model:    'gemini-1.5-flash',
         contents: prompt,
         config:   { responseMimeType: 'application/json' },
       });
@@ -200,18 +200,20 @@ ${JSON.stringify(ictContext, null, 2)}
       return { ...result, cached: false };
 
     } catch (err) {
-      console.error('AI Narrative Error:', err.message);
+      // Log the full error so it appears in Render logs
+      console.error('AI Narrative Error:', err.message || err, '\nStatus:', err.status, '\nDetails:', JSON.stringify(err.errorDetails || err.response || ''));
+      const errReason = err.message ? `(${err.message.slice(0, 80)})` : '';
       return {
-        verdict:     snapshot.verdict,
-        confidence:  snapshot.confidence,
-        lanes:       snapshot.lanes,
-        reasoning:   'AI commentary temporarily unavailable. Rule-based fallback active.',
-        setup:       null,
-        watch_zone:  snapshot.watch_zone,
+        verdict:      snapshot.verdict,
+        confidence:   snapshot.confidence,
+        lanes:        snapshot.lanes,
+        reasoning:    `AI commentary unavailable ${errReason}. Rule-based verdict active.`,
+        setup:        null,
+        watch_zone:   snapshot.watch_zone,
         invalidation: snapshot.invalidation,
-        liquidity:   zones?.liquidity ?? null,
-        cached:      false,
-        fallback:    true,
+        liquidity:    zones?.liquidity ?? null,
+        cached:       false,
+        fallback:     true,
       };
     }
   }
