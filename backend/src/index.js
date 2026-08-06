@@ -194,16 +194,17 @@ async function bootstrap() {
       const apiKeys = rawKey.split(',').map(k => k.trim()).filter(Boolean);
       if (apiKeys.length === 0) return res.status(400).json({ error: 'No GEMINI_API_KEY configured' });
       
-      const { GoogleGenAI } = require('@google/genai');
-      const ai = new GoogleGenAI({ apiKey: apiKeys[0], httpOptions: { apiVersion: 'v1' } });
+      const { GoogleGenerativeAI } = require('@google/generative-ai');
+      const genAI = new GoogleGenerativeAI(apiKeys[0]);
+      const ai = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       
-      const response = await ai.models.generateContent({
-        model: 'gemini-1.5-flash',
-        contents: 'Say "hello world" in JSON format like {"msg":"hello world"}',
-        config: { responseMimeType: 'application/json' },
+      const result = await ai.generateContent({
+        contents: [{ role: 'user', parts: [{ text: 'Say "hello world" in JSON format like {"msg":"hello world"}' }] }],
+        generationConfig: { responseMimeType: "application/json" }
       });
+      const response = await result.response;
       
-      res.json({ success: true, keysFound: apiKeys.length, response: response.text });
+      res.json({ success: true, keysFound: apiKeys.length, response: response.text() });
     } catch (err) {
       res.status(500).json({
         success: false,

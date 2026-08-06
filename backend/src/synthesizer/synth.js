@@ -1,4 +1,4 @@
-const { GoogleGenAI } = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 class Synthesizer {
   constructor(technicalLane, flowLane, narrativeLane, macroLane) {
@@ -183,15 +183,17 @@ ${JSON.stringify(ictContext, null, 2)}
         // Pick a random key from the available pool
         const keyIndex = Math.floor(Math.random() * availableKeys.length);
         const apiKey = availableKeys[keyIndex];
-        // Force v1 API which has stable access to 1.5-flash globally
-        const ai = new GoogleGenAI({ apiKey, httpOptions: { apiVersion: 'v1' } });
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const ai = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         try {
-          return await ai.models.generateContent({
-            model:    'gemini-1.5-flash',
-            contents: prompt,
-            config:   { responseMimeType: 'application/json' },
+          // Tell it to output JSON
+          const result = await ai.generateContent({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: "application/json" }
           });
+          const response = await result.response;
+          return { text: response.text() };
         } catch (err) {
           const is429 = err?.status === 429 || (err?.message || '').includes('429') || (err?.message || '').includes('quota');
           if (is429) {
