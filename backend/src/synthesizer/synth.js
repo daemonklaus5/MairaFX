@@ -136,8 +136,8 @@ class Synthesizer {
     const cached   = this.cache.get(cacheKey);
     const now      = Date.now();
 
-    // 5-minute cache — rich analysis doesn't need to refresh every click
-    if (cached && (now - cached.time < 300_000)) {
+    // 15-minute cache — prevents hammering the API on every Analyze click
+    if (cached && (now - cached.time < 900_000)) {
       return { ...cached.result, cached: true };
     }
 
@@ -175,12 +175,28 @@ ${JSON.stringify(ictContext, null, 2)}
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) throw new Error('No GEMINI_API_KEY configured');
 
-      const ai       = new GoogleGenAI({ apiKey });
-      const response = await ai.models.generateContent({
-        model:    'gemini-2.0-flash-lite',
-        contents: prompt,
-        config:   { responseMimeType: 'application/json' },
-      });
+      const ai = new GoogleGenAI({ apiKey });
+
+      // Helper to call Gemini with one automatic retry on 429
+      const callGemini = async (retryOnce = true) => {
+        try {
+          return await ai.models.generateContent({
+            model:    'gemini-2.0-flash-lite',
+            contents: prompt,
+            config:   { responseMimeType: 'application/json' },
+          });
+        } catch (err) {
+          const is429 = err?.status === 429 || (err?.message || '').includes('429') || (err?.message || '').includes('quota');
+          if (is429 && retryOnce) {
+            console.log('Gemini 429 — waiting 10s then retrying...');
+            await new Promise(r => setTimeout(r, 10000));
+            return callGemini(false); // one retry
+          }
+          throw err;
+        }
+      };
+
+      const response = await callGemini();
 
       const jsonResult = JSON.parse(response.text);
 
@@ -200,9 +216,11 @@ ${JSON.stringify(ictContext, null, 2)}
       return { ...result, cached: false };
 
     } catch (err) {
-      // Log the full error so it appears in Render logs
-      console.error('AI Narrative Error:', err.message || err, '\nStatus:', err.status, '\nDetails:', JSON.stringify(err.errorDetails || err.response || ''));
-      const errReason = err.message ? `(${err.message.slice(0, 80)})` : '';
+      const is429 = err?.status === 429 || (err?.message || '').includes('429') || (err?.message || '').includes('quota');
+      console.error('AI Narrative Error:', err.message || err, '\nStatus:', err.status);
+      const errReason = is429
+        ? '(Rate limit — wait a moment and try again)'
+        : err.message ? `(${err.message.slice(0, 80)})` : '';
       return {
         verdict:      snapshot.verdict,
         confidence:   snapshot.confidence,
