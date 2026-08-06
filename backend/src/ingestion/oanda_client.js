@@ -45,7 +45,7 @@ class OandaClient {
 
   async backfill(symbol, tf, count = 500) {
     try {
-      const url = `${BASE_URL}/v3/instruments/${symbol}/candles?granularity=${tf}&count=${count}&price=M`;
+      const url = `${BASE_URL}/v3/instruments/${symbol}/candles?granularity=${tf}&count=${count}&price=B`;
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${API_KEY}`,
@@ -73,10 +73,10 @@ class OandaClient {
           symbol,
           tf,
           candle.time,
-          parseFloat(candle.mid.o),
-          parseFloat(candle.mid.h),
-          parseFloat(candle.mid.l),
-          parseFloat(candle.mid.c),
+          parseFloat(candle.bid.o),
+          parseFloat(candle.bid.h),
+          parseFloat(candle.bid.l),
+          parseFloat(candle.bid.c),
           candle.volume
         );
       }
