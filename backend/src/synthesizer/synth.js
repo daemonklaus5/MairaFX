@@ -225,12 +225,13 @@ ${JSON.stringify(ictContext, null, 2)}
       return { ...result, cached: false };
 
     } catch (err) {
-      const is429 = err?.status === 429 || (err?.message || '').includes('429') || (err?.message || '').includes('quota');
+      const is429 = err?.status === 429 || (err?.message || '').includes('429') || (err?.message || '').includes('quota') || (err?.message || '').includes('exhausted');
       console.error('AI Narrative Error:', err.message || err, '\nStatus:', err.status);
       const errReason = is429
-        ? '(Rate limit — wait a moment and try again)'
+        ? '(Rate limit — please wait 60s)'
         : err.message ? `(${err.message.slice(0, 80)})` : '';
-      return {
+        
+      const fallbackResult = {
         verdict:      snapshot.verdict,
         confidence:   snapshot.confidence,
         lanes:        snapshot.lanes,
@@ -242,6 +243,14 @@ ${JSON.stringify(ictContext, null, 2)}
         cached:       false,
         fallback:     true,
       };
+
+      // If we hit a rate limit, cache the failure for 60 seconds so the user
+      // cannot keep hammering the API and extending the Google penalty timer.
+      if (is429) {
+        this.cache.set(cacheKey, { time: now - 900_000 + 60000, result: fallbackResult }); // expires in 60s
+      }
+
+      return fallbackResult;
     }
   }
 }
