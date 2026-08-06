@@ -72,7 +72,12 @@ class CandleBuilder {
       await db.query(`
         INSERT INTO candles (symbol, timeframe, timestamp, open, high, low, close, volume)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        ON CONFLICT (symbol, timeframe, timestamp) DO NOTHING
+        ON CONFLICT (symbol, timeframe, timestamp) DO UPDATE SET
+          open = EXCLUDED.open,
+          high = EXCLUDED.high,
+          low = EXCLUDED.low,
+          close = EXCLUDED.close,
+          volume = EXCLUDED.volume
       `, [
         candle.symbol,
         candle.timeframe,

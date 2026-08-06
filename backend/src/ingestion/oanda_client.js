@@ -39,8 +39,51 @@ class OandaClient {
       }
     }
 
+    // Seed the CandleBuilder with current incomplete candles
+    await this.seedCurrentCandles();
+
     // Start streaming
     this.startStreaming();
+  }
+
+  async seedCurrentCandles() {
+    if (!this.candleBuilder) return;
+    for (const pair of PAIRS) {
+      for (const tf of TIMEFRAMES) {
+        try {
+          const url = `${BASE_URL}/v3/instruments/${pair}/candles?granularity=${tf}&count=1&price=B&includeFirst=true`;
+          const response = await fetch(url, {
+            headers: {
+              'Authorization': `Bearer ${API_KEY}`,
+              'Accept-Datetime-Format': 'RFC3339'
+            }
+          });
+          if (!response.ok) continue;
+          const data = await response.json();
+          if (!data.candles || data.candles.length === 0) continue;
+          
+          // Get the last candle (which should be the current incomplete one)
+          const candle = data.candles[data.candles.length - 1];
+          if (candle.complete) continue; // Only seed incomplete candles
+          
+          const internalTf = tfMap[tf];
+          const key = `${pair}_${internalTf}`;
+          this.candleBuilder.currentCandles[key] = {
+            symbol: pair,
+            timeframe: internalTf,
+            timestamp: candle.time,
+            open: parseFloat(candle.bid.o),
+            high: parseFloat(candle.bid.h),
+            low: parseFloat(candle.bid.l),
+            close: parseFloat(candle.bid.c),
+            volume: candle.volume || 1
+          };
+          console.log(`Seeded live candle for ${pair} ${internalTf}`);
+        } catch (err) {
+          // Non-critical, live ticks will create the candle anyway
+        }
+      }
+    }
   }
 
   async backfill(symbol, tf, count = 500) {
