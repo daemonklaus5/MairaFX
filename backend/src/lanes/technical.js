@@ -30,16 +30,24 @@ class TechnicalLane {
     const basis = [];
 
     // ── EMA Stack ──
-    const { ema9, ema21, ema50, ema200, rsi14, adx } = indicators;
+    let { ema9, ema21, ema50, ema200, rsi14, adx } = indicators;
+    ema9 = ema9 ? parseFloat(ema9) : null;
+    ema21 = ema21 ? parseFloat(ema21) : null;
+    ema50 = ema50 ? parseFloat(ema50) : null;
+    ema200 = ema200 ? parseFloat(ema200) : null;
+    rsi14 = rsi14 ? parseFloat(rsi14) : null;
+    adx = adx ? parseFloat(adx) : null;
 
-    if (ema9 > ema21 && ema21 > ema50 && ema50 > ema200) {
-      score += 25;
-      basis.push('EMA stack bullish (9>21>50>200)');
-    } else if (ema9 < ema21 && ema21 < ema50 && ema50 < ema200) {
-      score -= 25;
-      basis.push('EMA stack bearish (9<21<50<200)');
-    } else {
-      basis.push('EMA stack mixed');
+    if (ema9 && ema21 && ema50 && ema200) {
+      if (ema9 > ema21 && ema21 > ema50 && ema50 > ema200) {
+        score += 25;
+        basis.push('EMA stack bullish (9>21>50>200)');
+      } else if (ema9 < ema21 && ema21 < ema50 && ema50 < ema200) {
+        score -= 25;
+        basis.push('EMA stack bearish (9<21<50<200)');
+      } else {
+        basis.push('EMA stack mixed');
+      }
     }
 
     // ── RSI ──
@@ -57,7 +65,7 @@ class TechnicalLane {
     }
 
     // ── ADX regime ──
-    if (adx)  basis.push(adx > 25 ? `Trending (ADX ${adx.toFixed(1)})` : `Ranging (ADX ${adx.toFixed(1)})`);
+    if (adx !== null)  basis.push(adx > 25 ? `Trending (ADX ${adx.toFixed(1)})` : `Ranging (ADX ${adx.toFixed(1)})`);
 
     // ── ICT Market Structure alignment ──
     if (marketStructure) {

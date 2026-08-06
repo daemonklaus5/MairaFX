@@ -1,42 +1,10 @@
-const https = require('https');
+const yahooFinance = require('yahoo-finance2').default;
 
 class MacroLane {
   constructor() {
     this._cache     = null;
     this._cacheTime = 0;
     this._cacheTtl  = 15 * 60 * 1000; // 15 minutes
-  }
-
-  /**
-   * Fetch a Yahoo Finance quote for a symbol using a direct HTTPS call.
-   * Returns regularMarketChangePercent or 0 on any failure.
-   */
-  _fetchYahooQuote(symbol) {
-    return new Promise((resolve) => {
-      const url = `https://query1.finance.yahoo.com/v8/finance/quote?symbols=${encodeURIComponent(symbol)}&fields=regularMarketChangePercent,regularMarketPrice`;
-      const options = {
-        headers: { 'User-Agent': 'Mozilla/5.0' },
-        timeout: 5000,
-      };
-      const req = https.get(url, options, (res) => {
-        let raw = '';
-        res.on('data', chunk => { raw += chunk; });
-        res.on('end', () => {
-          try {
-            const json = JSON.parse(raw);
-            const result = json?.quoteResponse?.result?.[0];
-            resolve({
-              changePercent: result?.regularMarketChangePercent ?? 0,
-              price:         result?.regularMarketPrice ?? null,
-            });
-          } catch {
-            resolve({ changePercent: 0, price: null });
-          }
-        });
-      });
-      req.on('error', () => resolve({ changePercent: 0, price: null }));
-      req.on('timeout', () => { req.destroy(); resolve({ changePercent: 0, price: null }); });
-    });
   }
 
   async _fetchMacro() {
@@ -46,17 +14,20 @@ class MacroLane {
     }
 
     try {
-      // Fetch DXY and SPX in parallel with 5-sec timeout each
+      // Use yahooFinance2 to handle cookies/headers automatically
+      // Suppress logging of warnings to avoid terminal spam
+      yahooFinance.suppressNotices(['yahooSurvey']);
+      
       const [dxy, spx] = await Promise.all([
-        this._fetchYahooQuote('DX-Y.NYB'),
-        this._fetchYahooQuote('%5EGSPC'),  // ^GSPC URL-encoded
+        yahooFinance.quote('DX-Y.NYB').catch(() => null),
+        yahooFinance.quote('^GSPC').catch(() => null),
       ]);
 
       const data = {
-        dxyChange: dxy.changePercent,
-        dxyPrice:  dxy.price,
-        spxChange: spx.changePercent,
-        riskOn:    spx.changePercent >= 0,
+        dxyChange: dxy?.regularMarketChangePercent ?? 0,
+        dxyPrice:  dxy?.regularMarketPrice ?? null,
+        spxChange: spx?.regularMarketChangePercent ?? 0,
+        riskOn:    (spx?.regularMarketChangePercent ?? 0) >= 0,
       };
 
       this._cache     = data;
@@ -64,7 +35,6 @@ class MacroLane {
       return data;
     } catch (err) {
       console.error('MacroLane._fetchMacro error:', err.message);
-      // Return stale cache if available, else neutral fallback
       return this._cache ?? { dxyChange: 0, dxyPrice: null, spxChange: 0, riskOn: true };
     }
   }
