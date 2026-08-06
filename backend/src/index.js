@@ -196,7 +196,8 @@ async function bootstrap() {
       
       const { GoogleGenerativeAI } = require('@google/generative-ai');
       const genAI = new GoogleGenerativeAI(apiKeys[0]);
-      const ai = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const modelName = req.query.model || 'gemini-1.5-flash';
+      const ai = genAI.getGenerativeModel({ model: modelName });
       
       const result = await ai.generateContent({
         contents: [{ role: 'user', parts: [{ text: 'Say "hello world" in JSON format like {"msg":"hello world"}' }] }],
