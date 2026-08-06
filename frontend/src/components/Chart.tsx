@@ -88,7 +88,7 @@ export function Chart({ symbol, timeframe }: ChartProps) {
   }, [symbol, timeframe]);
 
   return (
-    <div className="relative w-full h-[350px] md:h-[600px] bg-panel rounded-lg overflow-hidden border border-gray-800">
+    <div className="relative w-full h-full bg-panel rounded-lg overflow-hidden border border-gray-800">
       <div
         id="tradingview-widget"
         ref={containerRef}

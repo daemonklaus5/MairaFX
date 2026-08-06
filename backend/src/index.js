@@ -17,6 +17,7 @@ const Synthesizer = require('./synthesizer/synth');
 const runMigrations = require('./db/migrations');
 const cotJob = require('./cot/job');
 const AlertManager = require('./alerts/manager');
+const { fetchForexNews } = require('./ingestion/finnhub_news');
 
 const app = express();
 const server = http.createServer(app);
@@ -110,6 +111,30 @@ async function bootstrap() {
       res.json(alert);
     } catch (e) {
       res.status(500).json({ error: e.message });
+    }
+  });
+
+  // News endpoint – uses Finnhub free forex news feed
+  let newsCache = { data: [], fetchedAt: 0 };
+  const NEWS_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+  app.get('/api/news/:symbol', async (req, res) => {
+    try {
+      const now = Date.now();
+      if (now - newsCache.fetchedAt < NEWS_TTL_MS && newsCache.data.length > 0) {
+        return res.json(newsCache.data);
+      }
+      const apiKey = process.env.FINNHUB_API_KEY;
+      if (!apiKey) {
+        // Fallback: return empty so frontend shows gracefully
+        return res.json([]);
+      }
+      const articles = await fetchForexNews(apiKey, 10);
+      newsCache = { data: articles, fetchedAt: now };
+      res.json(articles);
+    } catch (err) {
+      console.error('News fetch error:', err.message);
+      res.json(newsCache.data); // serve stale on error
     }
   });
 
