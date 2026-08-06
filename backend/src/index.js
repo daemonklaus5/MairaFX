@@ -195,10 +195,10 @@ async function bootstrap() {
       if (apiKeys.length === 0) return res.status(400).json({ error: 'No GEMINI_API_KEY configured' });
       
       const { GoogleGenAI } = require('@google/genai');
-      const ai = new GoogleGenAI({ apiKey: apiKeys[0] });
+      const ai = new GoogleGenAI({ apiKey: apiKeys[0], httpOptions: { apiVersion: 'v1' } });
       
       const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-1.5-flash',
         contents: 'Say "hello world" in JSON format like {"msg":"hello world"}',
         config: { responseMimeType: 'application/json' },
       });

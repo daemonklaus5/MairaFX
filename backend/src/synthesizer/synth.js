@@ -183,11 +183,12 @@ ${JSON.stringify(ictContext, null, 2)}
         // Pick a random key from the available pool
         const keyIndex = Math.floor(Math.random() * availableKeys.length);
         const apiKey = availableKeys[keyIndex];
-        const ai = new GoogleGenAI({ apiKey });
+        // Force v1 API which has stable access to 1.5-flash globally
+        const ai = new GoogleGenAI({ apiKey, httpOptions: { apiVersion: 'v1' } });
 
         try {
           return await ai.models.generateContent({
-            model:    'gemini-1.5-flash-8b',
+            model:    'gemini-1.5-flash',
             contents: prompt,
             config:   { responseMimeType: 'application/json' },
           });
