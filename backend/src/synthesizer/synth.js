@@ -63,7 +63,7 @@ class Synthesizer {
   /**
    * Build a rich ICT-aware context object to pass to Gemini.
    */
-  _buildIctContext(zones, snapshot) {
+  _buildIctContext(zones, snapshot, mtfZones, econCalendar) {
     const ctx = {
       rule_based_verdict:    snapshot.verdict,
       rule_based_confidence: snapshot.confidence,
@@ -72,7 +72,32 @@ class Synthesizer {
 
     if (!zones) return ctx;
 
+    // 1. Multi-Timeframe Alignment
+    if (mtfZones) {
+      ctx.mtf_alignment = {
+        daily_trend: mtfZones['1D']?.marketStructure?.trend || 'unknown',
+        h4_trend:    mtfZones['4H']?.marketStructure?.trend || 'unknown',
+      };
+    }
+
+    // 2. High-Impact Economic Calendar
+    if (econCalendar && econCalendar.length > 0) {
+      ctx.upcoming_high_impact_news = econCalendar;
+    }
+
+    // 3. Real-Time Kill Zones (UTC)
+    const utcHour = new Date().getUTCHours();
+    if (utcHour >= 7 && utcHour < 10) ctx.current_session = "London Open Killzone (High Volatility)";
+    else if (utcHour >= 12 && utcHour < 15) ctx.current_session = "New York Open Killzone (High Volatility)";
+    else if (utcHour >= 0 && utcHour < 6) ctx.current_session = "Asian Range (Consolidation)";
+    else ctx.current_session = "Between Killzones (Moderate Volatility)";
+
     ctx.current_price = zones.currentPrice;
+
+    // 4. Volume Profile
+    if (zones.volumePOC) {
+      ctx.volume_point_of_control = zones.volumePOC.toFixed(5);
+    }
 
     if (zones.marketStructure) {
       const ms = zones.marketStructure;
@@ -131,7 +156,7 @@ class Synthesizer {
   /**
    * Call Gemini with the full ICT context and return an institutional-grade narrative.
    */
-  async getAiNarrative(symbol, snapshot, zones) {
+  async getAiNarrative(symbol, snapshot, zones, mtfZones, econCalendar) {
     const cacheKey = `${symbol}_narrative`;
     const cached   = this.cache.get(cacheKey);
     const now      = Date.now();
@@ -141,7 +166,7 @@ class Synthesizer {
       return { ...cached.result, cached: true };
     }
 
-    const ictContext = this._buildIctContext(zones, snapshot);
+    const ictContext = this._buildIctContext(zones, snapshot, mtfZones, econCalendar);
 
     const prompt = `
 You are a professional institutional forex trader who trades using the ICT (Inner Circle Trader) methodology.
@@ -153,19 +178,20 @@ Output ONLY strict JSON matching this schema (no extra keys):
   "reasoning": "<string — max 100 words, ICT language>",
   "setup": "<string — specific entry model, e.g. 'Bearish OB retest at 1.1521 targeting SSL at 1.1468'>",
   "watch_zone": "<string — specific price level or zone to watch>",
-  "invalidation": ["<string>", "<string>"]
+  "invalidation": ["<string>", "<string>"],
+  "risk_sizing": "<string — e.g. 'Risk 35 pips (1% = 0.28 Lots per $10k)'>"
 }
 
 ICT Analytical Framework (apply strictly):
-1. LIQUIDITY FIRST: Price is always seeking liquidity. Identify where BSL or SSL clusters sit and whether price is being drawn toward them.
-2. PREMIUM / DISCOUNT: In a premium zone (price > midpoint), favor short entries. In a discount zone, favor long entries. Never go long in premium or short in discount without extreme confluence.
-3. ORDER BLOCKS: An unmitigated OB is a high-probability entry zone. A bullish OB is the last bearish candle before a strong bullish impulse. A bearish OB is the last bullish candle before a strong bearish impulse.
-4. FAIR VALUE GAPS (FVG): Price returns to fill imbalances. An active FVG is a magnet for price.
-5. MARKET STRUCTURE: BOS (Break of Structure) confirms trend continuation. CHoCH (Change of Character) warns of a reversal — reduce conviction significantly.
-6. KILL ZONES: London Open (06:00–09:00 UTC) and NY Open (12:00–15:00 UTC) are the highest-probability times for entries. Flag if we are currently in a kill zone.
-7. CONFLUENCE: Only call LONG or SHORT when at least 3 ICT factors align (structure + liquidity target + OB or FVG + session). Otherwise call WAIT.
-8. LANGUAGE: Never use "might", "could possibly", "potentially". State analysis plainly. The confidence tier communicates uncertainty.
-9. SETUP FIELD: Must be a concrete trade description — entry zone, target, and type of model (OB retest, FVG fill, liquidity sweep, etc.). If WAIT, set setup to "No valid ICT entry model present".
+1. MULTI-TIMEFRAME ALIGNMENT: Do not call LONG if Daily/4H trend is strongly Bearish. Do not call SHORT if Daily/4H is strongly Bullish.
+2. ECONOMIC CALENDAR: If high-impact news is dropping soon today, default to WAIT unless the setup is pristine.
+3. KILL ZONES: Entries are highest probability during London or NY Killzones. Be highly skeptical of Asian Range breakouts.
+4. VOLUME POC: Price is drawn to the Point of Control. Use it as a magnet target or strong support/resistance.
+5. LIQUIDITY FIRST: Price is always seeking liquidity. Identify where BSL or SSL clusters sit.
+6. PREMIUM / DISCOUNT: Never go long in premium or short in discount without extreme confluence.
+7. CONFLUENCE: Only call LONG or SHORT when at least 3 ICT factors align (MTF + liquidity + OB/FVG). Otherwise call WAIT.
+8. RISK SIZING: If a setup exists, calculate the pip difference between current price and invalidation. Output position size assuming 1% risk on a $10,000 account balance (Standard Lot = $10/pip).
+9. LANGUAGE: State analysis plainly. If WAIT, set setup to "No valid ICT entry model present" and risk_sizing to "N/A".
 
 Market Data Input:
 ${JSON.stringify(ictContext, null, 2)}
@@ -220,7 +246,13 @@ ${JSON.stringify(ictContext, null, 2)}
         setup:       jsonResult.setup       || null,
         watch_zone:  jsonResult.watch_zone  || snapshot.watch_zone,
         invalidation: jsonResult.invalidation || snapshot.invalidation,
-        // Expose liquidity for the frontend display
+        risk_sizing: jsonResult.risk_sizing || "N/A",
+        
+        // Expose new metrics for frontend
+        session:     ictContext.current_session,
+        mtf:         ictContext.mtf_alignment,
+        poc:         ictContext.volume_point_of_control,
+        news:        ictContext.upcoming_high_impact_news,
         liquidity:   zones?.liquidity ?? null,
       };
 
@@ -228,13 +260,10 @@ ${JSON.stringify(ictContext, null, 2)}
       return { ...result, cached: false };
 
     } catch (err) {
-      const is429 = err?.status === 429 || (err?.message || '').includes('429') || (err?.message || '').includes('quota') || (err?.message || '').includes('exhausted');
-      console.error('AI Narrative Error:', err.message || err, '\nStatus:', err.status);
-      const errReason = is429
-        ? '(Rate limit — please wait 60s)'
-        : err.message ? `(${err.message.slice(0, 80)})` : '';
-        
-      const fallbackResult = {
+      // Log the full error so it appears in Render logs
+      console.error('AI Narrative Error:', err.message || err, '\nStatus:', err.status, '\nDetails:', JSON.stringify(err.errorDetails || err.response || ''));
+      const errReason = err.message ? `(${err.message.slice(0, 80)})` : '';
+      return {
         verdict:      snapshot.verdict,
         confidence:   snapshot.confidence,
         lanes:        snapshot.lanes,
@@ -242,18 +271,11 @@ ${JSON.stringify(ictContext, null, 2)}
         setup:        null,
         watch_zone:   snapshot.watch_zone,
         invalidation: snapshot.invalidation,
+        risk_sizing:  "N/A",
         liquidity:    zones?.liquidity ?? null,
         cached:       false,
         fallback:     true,
       };
-
-      // If we hit a rate limit, cache the failure for 60 seconds so the user
-      // cannot keep hammering the API and extending the Google penalty timer.
-      if (is429) {
-        this.cache.set(cacheKey, { time: now - 900_000 + 60000, result: fallbackResult }); // expires in 60s
-      }
-
-      return fallbackResult;
     }
   }
 }

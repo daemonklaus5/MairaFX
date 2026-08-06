@@ -17,7 +17,7 @@ const Synthesizer = require('./synthesizer/synth');
 const runMigrations = require('./db/migrations');
 const cotJob = require('./cot/job');
 const AlertManager = require('./alerts/manager');
-const { fetchForexNews } = require('./ingestion/finnhub_news');
+const { fetchForexNews, fetchEconomicCalendar } = require('./ingestion/finnhub_news');
 
 const app = express();
 const server = http.createServer(app);
@@ -228,8 +228,17 @@ async function bootstrap() {
       const latestInds = engine.getLatest(symbol, timeframe);
       const price = req.body?.price || (latestInds ? latestInds.ema9 : 0) || (zones?.currentPrice ?? 0);
 
+      // Fetch MTF Zones for alignment
+      let mtfZones = { '1D': null, '4H': null };
+      if (timeframe !== '1D') mtfZones['1D'] = await detector.detect(symbol, '1D');
+      if (timeframe !== '4H' && timeframe !== '1D') mtfZones['4H'] = await detector.detect(symbol, '4H');
+
+      // Fetch Economic Calendar for today
+      const apiKey = process.env.FINNHUB_API_KEY;
+      const econCalendar = apiKey ? await fetchEconomicCalendar(apiKey) : [];
+
       const snapshot = await synth.evaluateRuleBased(symbol, timeframe, price, zones);
-      const aiResult = await synth.getAiNarrative(symbol, snapshot, zones);
+      const aiResult = await synth.getAiNarrative(symbol, snapshot, zones, mtfZones, econCalendar);
 
       res.json(aiResult);
     } catch (err) {

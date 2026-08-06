@@ -39,4 +39,42 @@ async function fetchForexNews(apiKey, limit = 10) {
   });
 }
 
-module.exports = { fetchForexNews };
+async function fetchEconomicCalendar(apiKey) {
+  return new Promise((resolve, reject) => {
+    const url = `https://finnhub.io/api/v1/economic?token=${apiKey}`;
+    https.get(url, (res) => {
+      let raw = '';
+      res.on('data', (chunk) => { raw += chunk; });
+      res.on('end', () => {
+        try {
+          const events = JSON.parse(raw);
+          if (!Array.isArray(events.economicCalendar)) {
+            resolve([]);
+            return;
+          }
+          
+          // Filter for high impact events (impact === 'high' or impact === 3) occurring today
+          const today = new Date().toISOString().split('T')[0];
+          const highImpact = events.economicCalendar.filter(e => 
+            (e.impact === 'high' || e.impact === 3 || e.impact === 'High') && 
+            e.time.startsWith(today)
+          ).map(e => ({
+            event: e.event,
+            country: e.country,
+            time: e.time,
+            impact: e.impact,
+            estimate: e.estimate,
+            actual: e.actual
+          }));
+          
+          resolve(highImpact);
+        } catch (e) {
+          resolve([]); // Fallback to empty on error
+        }
+      });
+      res.on('error', () => resolve([]));
+    }).on('error', () => resolve([]));
+  });
+}
+
+module.exports = { fetchForexNews, fetchEconomicCalendar };

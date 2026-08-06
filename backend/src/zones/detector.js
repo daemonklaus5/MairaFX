@@ -221,10 +221,49 @@ class ZoneDetector {
     return obs.slice(-6);
   }
 
+  /**
+   * Volume Profile - Calculate Point of Control (POC)
+   */
+  calculateVolumeProfile(candles) {
+    if (!candles || candles.length === 0) return null;
+    
+    // Bucket size depends on the price range (e.g. 50 buckets)
+    const prices = candles.map(c => parseFloat(c.close));
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    if (min === max) return min;
+
+    const numBuckets = 50;
+    const bucketSize = (max - min) / numBuckets;
+    const profile = Array(numBuckets).fill(0);
+
+    for (const c of candles) {
+      const p = parseFloat(c.close);
+      const v = parseFloat(c.volume) || 0;
+      if (v <= 0) continue;
+      
+      let bucketIdx = Math.floor((p - min) / bucketSize);
+      if (bucketIdx >= numBuckets) bucketIdx = numBuckets - 1;
+      profile[bucketIdx] += v;
+    }
+
+    let maxVol = -1;
+    let pocIdx = -1;
+    for (let i = 0; i < numBuckets; i++) {
+      if (profile[i] > maxVol) {
+        maxVol = profile[i];
+        pocIdx = i;
+      }
+    }
+
+    if (pocIdx === -1) return null;
+    return min + (pocIdx * bucketSize) + (bucketSize / 2); // Return middle of the POC bucket
+  }
+
   async detect(symbol, timeframe) {
     try {
       const result = await db.query(
-        `SELECT timestamp, open, high, low, close 
+        `SELECT timestamp, open, high, low, close, volume 
          FROM candles 
          WHERE symbol = $1 AND timeframe = $2 
          ORDER BY timestamp DESC 
@@ -254,7 +293,9 @@ class ZoneDetector {
         fibZone = { type: 'golden_pocket', lower: lastLow + diff * 0.618, upper: lastLow + diff * 0.65 };
       }
 
-      return { support, resistance, orderBlocks, fibZone, marketStructure, liquidity, fvgs, currentPrice };
+      const volumePOC = this.calculateVolumeProfile(candles);
+
+      return { support, resistance, orderBlocks, fibZone, marketStructure, liquidity, fvgs, volumePOC, currentPrice };
     } catch (err) {
       console.error(`ZoneDetector error for ${symbol}:`, err.message);
       return null;

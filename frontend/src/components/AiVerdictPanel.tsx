@@ -32,6 +32,18 @@ interface AiResult {
     bsl: LiquidityLevel[];
     ssl: LiquidityLevel[];
   } | null;
+  risk_sizing: string;
+  session: string;
+  mtf: {
+    daily_trend: string;
+    h4_trend: string;
+  } | null;
+  poc: string | null;
+  news: {
+    event: string;
+    impact: string;
+    time: string;
+  }[] | null;
   cached?: boolean;
   fallback?: boolean;
 }
@@ -172,6 +184,44 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
             {data.reasoning}
           </div>
 
+          {/* Institutional Metrics (MTF, POC, Session) */}
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <div className="bg-gray-800/20 border border-gray-800 rounded-md p-2">
+              <span className="text-[9px] text-gray-500 uppercase tracking-widest block mb-0.5">Session</span>
+              <span className="text-[10px] text-gray-300 font-medium">{data.session || 'Unknown'}</span>
+            </div>
+            {data.poc && (
+              <div className="bg-gray-800/20 border border-gray-800 rounded-md p-2">
+                <span className="text-[9px] text-gray-500 uppercase tracking-widest block mb-0.5">Volume POC</span>
+                <span className="text-[10px] text-gray-300 font-mono">{data.poc}</span>
+              </div>
+            )}
+            {data.mtf && (
+              <div className="bg-gray-800/20 border border-gray-800 rounded-md p-2 col-span-2 flex justify-between">
+                <div>
+                  <span className="text-[9px] text-gray-500 uppercase tracking-widest block mb-0.5">1D Trend</span>
+                  <span className={`text-[10px] font-medium capitalize ${data.mtf.daily_trend === 'bullish' ? 'text-bull' : data.mtf.daily_trend === 'bearish' ? 'text-bear' : 'text-gray-400'}`}>{data.mtf.daily_trend}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[9px] text-gray-500 uppercase tracking-widest block mb-0.5">4H Trend</span>
+                  <span className={`text-[10px] font-medium capitalize ${data.mtf.h4_trend === 'bullish' ? 'text-bull' : data.mtf.h4_trend === 'bearish' ? 'text-bear' : 'text-gray-400'}`}>{data.mtf.h4_trend}</span>
+                </div>
+              </div>
+            )}
+            {data.news && data.news.length > 0 && (
+              <div className="bg-orange-400/10 border border-orange-400/20 rounded-md p-2 col-span-2">
+                <span className="text-[9px] text-orange-400 uppercase tracking-widest block mb-0.5 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" /> High-Impact News Today
+                </span>
+                <div className="text-[10px] text-gray-300">
+                  {data.news.map((n, i) => (
+                    <div key={i} className="truncate">• {n.event} ({new Date(n.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})</div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Liquidity Levels */}
           {data.liquidity && (data.liquidity.bsl.length > 0 || data.liquidity.ssl.length > 0) && (
             <div className="space-y-1.5">
@@ -219,6 +269,17 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
                 <ul className="text-[11px] text-gray-200 space-y-0.5">
                   {data.invalidation.map((inv, i) => <li key={i}>• {inv}</li>)}
                 </ul>
+              </div>
+            </div>
+          )}
+
+          {/* Risk Sizing */}
+          {data.risk_sizing && data.risk_sizing !== "N/A" && (
+            <div className="flex items-start gap-2">
+              <div className="w-3.5 h-3.5 text-purple-400 mt-0.5 shrink-0 flex items-center justify-center font-bold text-[10px] bg-purple-400/20 rounded">R</div>
+              <div>
+                <span className="text-[10px] text-gray-500 uppercase tracking-wider block">Risk & Sizing</span>
+                <span className="text-[11px] text-purple-300">{data.risk_sizing}</span>
               </div>
             </div>
           )}
