@@ -11,7 +11,7 @@ function App() {
   const [timeframe, setTimeframe] = useState('15m');
 
   const pairs = ['EUR_USD', 'GBP_USD', 'USD_JPY', 'AUD_USD'];
-  const timeframes = ['15m', '1H', '4H', '1D'];
+  const timeframes = ['1m', '5m', '15m', '1H', '4H', '1D'];
 
   return (
     <div className="h-screen flex flex-col bg-darker text-gray-200 overflow-hidden">
