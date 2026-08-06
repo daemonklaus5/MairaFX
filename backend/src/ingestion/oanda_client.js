@@ -165,7 +165,7 @@ class OandaClient {
     const tick = {
       type: 'TICK',
       symbol: data.instrument,
-      price: mid,
+      price: bid,
       timestamp: data.time
     };
     
