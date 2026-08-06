@@ -65,14 +65,16 @@ async function bootstrap() {
   });
 
   app.get('/api/lanes/:symbol/:timeframe', async (req, res) => {
-    const tfMap = { '15m': 'M15', '1H': 'H1', '4H': 'H4', '1D': 'D' };
-    const dbTimeframe = tfMap[req.params.timeframe] || req.params.timeframe;
-
-    // Current price mock - in reality fetch latest tick
-    const latestInds = engine.getLatest(req.params.symbol, dbTimeframe);
-    const price = latestInds ? latestInds.ema9 : 0; 
-    const snapshot = synth.evaluateRuleBased(req.params.symbol, dbTimeframe, price, null);
-    res.json(snapshot);
+    try {
+      const tfMap = { '15m': 'M15', '1H': 'H1', '4H': 'H4', '1D': 'D' };
+      const dbTimeframe = tfMap[req.params.timeframe] || req.params.timeframe;
+      const latestInds = engine.getLatest(req.params.symbol, dbTimeframe);
+      const price = latestInds ? latestInds.ema9 : 0;
+      const snapshot = await synth.evaluateRuleBased(req.params.symbol, dbTimeframe, price, null);
+      res.json(snapshot);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   app.get('/api/cot/:symbol', (req, res) => {
@@ -141,15 +143,20 @@ async function bootstrap() {
   app.post('/api/analyze/:symbol/:timeframe', async (req, res) => {
     try {
       const { symbol, timeframe } = req.params;
-      const zones = await detector.detect(symbol, timeframe);
-      const latestInds = engine.getLatest(symbol, timeframe);
-      const price = req.body?.price || (latestInds ? latestInds.ema9 : 0);
-      
-      const snapshot = synth.evaluateRuleBased(symbol, timeframe, price, zones);
-      const aiResult = await synth.getAiNarrative(symbol, snapshot);
-      
+      // Map URL timeframe (e.g. '15m') to DB timeframe (e.g. 'M15')
+      const tfMap = { '1m': 'M1', '5m': 'M5', '15m': 'M15', '1H': 'H1', '4H': 'H4', '1D': 'D' };
+      const dbTimeframe = tfMap[timeframe] || timeframe;
+
+      const zones = await detector.detect(symbol, dbTimeframe);
+      const latestInds = engine.getLatest(symbol, dbTimeframe);
+      const price = req.body?.price || (latestInds ? latestInds.ema9 : 0) || (zones?.currentPrice ?? 0);
+
+      const snapshot = await synth.evaluateRuleBased(symbol, dbTimeframe, price, zones);
+      const aiResult = await synth.getAiNarrative(symbol, snapshot, zones);
+
       res.json(aiResult);
     } catch (err) {
+      console.error('Analyze error:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
