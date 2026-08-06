@@ -207,8 +207,11 @@ async function bootstrap() {
       
       res.json({ success: true, keysFound: apiKeys.length, response: response.text() });
     } catch (err) {
+      const rawKey = process.env.GEMINI_API_KEY || '';
+      const apiKeys = rawKey.split(',').map(k => k.trim()).filter(Boolean);
       res.status(500).json({
         success: false,
+        keysFound: apiKeys.length,
         errorName: err.name,
         errorMessage: err.message,
         errorStatus: err.status,
