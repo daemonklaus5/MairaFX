@@ -85,7 +85,12 @@ class OandaClient {
         const query = `
           INSERT INTO candles (symbol, timeframe, timestamp, open, high, low, close, volume)
           VALUES ${placeholders.join(', ')}
-          ON CONFLICT (symbol, timeframe, timestamp) DO NOTHING
+          ON CONFLICT (symbol, timeframe, timestamp) DO UPDATE SET
+            open = EXCLUDED.open,
+            high = EXCLUDED.high,
+            low = EXCLUDED.low,
+            close = EXCLUDED.close,
+            volume = EXCLUDED.volume
         `;
         await db.query(query, values);
       }
