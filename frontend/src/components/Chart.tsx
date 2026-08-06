@@ -58,11 +58,13 @@ export function Chart({ symbol, timeframe }: ChartProps) {
     };
 
     const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#10b981',
-      downColor: '#ef4444',
-      borderVisible: false,
-      wickUpColor: '#10b981',
-      wickDownColor: '#ef4444',
+      upColor: '#26a69a',
+      downColor: '#ef5350',
+      borderVisible: true,
+      borderUpColor: '#26a69a',
+      borderDownColor: '#ef5350',
+      wickUpColor: '#26a69a',
+      wickDownColor: '#ef5350',
       priceFormat: priceFormat,
     });
     
