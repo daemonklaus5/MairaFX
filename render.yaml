@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: forex-ai
+    env: node
+    buildCommand: "cd frontend && npm install && npm run build && cd ../backend && npm install"
+    startCommand: "cd backend && npm start"
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: OANDA_API_KEY
+        sync: false
+      - key: OANDA_ACCOUNT_ID
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false

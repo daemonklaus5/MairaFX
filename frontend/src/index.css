@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #00d1b2;
+  --color-dark: #0b0e14;
+  --color-darker: #060809;
+  --color-panel: #151924;
+  --color-text: #d1d5db;
+  --color-bear: #ef4444;
+  --color-bull: #10b981;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-darker);
+  color: var(--color-text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar for terminal feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-darker);
+}
+::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
+}
