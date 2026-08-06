@@ -66,11 +66,10 @@ async function bootstrap() {
 
   app.get('/api/lanes/:symbol/:timeframe', async (req, res) => {
     try {
-      const tfMap = { '15m': 'M15', '1H': 'H1', '4H': 'H4', '1D': 'D' };
-      const dbTimeframe = tfMap[req.params.timeframe] || req.params.timeframe;
-      const latestInds = engine.getLatest(req.params.symbol, dbTimeframe);
+      const { symbol, timeframe } = req.params;
+      const latestInds = engine.getLatest(symbol, timeframe);
       const price = latestInds ? latestInds.ema9 : 0;
-      const snapshot = await synth.evaluateRuleBased(req.params.symbol, dbTimeframe, price, null);
+      const snapshot = await synth.evaluateRuleBased(symbol, timeframe, price, null);
       res.json(snapshot);
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -143,15 +142,12 @@ async function bootstrap() {
   app.post('/api/analyze/:symbol/:timeframe', async (req, res) => {
     try {
       const { symbol, timeframe } = req.params;
-      // Map URL timeframe (e.g. '15m') to DB timeframe (e.g. 'M15')
-      const tfMap = { '1m': 'M1', '5m': 'M5', '15m': 'M15', '1H': 'H1', '4H': 'H4', '1D': 'D' };
-      const dbTimeframe = tfMap[timeframe] || timeframe;
-
-      const zones = await detector.detect(symbol, dbTimeframe);
-      const latestInds = engine.getLatest(symbol, dbTimeframe);
+      // DB stores candles as '15m', '1H', '4H', '1D' — matches URL params directly
+      const zones = await detector.detect(symbol, timeframe);
+      const latestInds = engine.getLatest(symbol, timeframe);
       const price = req.body?.price || (latestInds ? latestInds.ema9 : 0) || (zones?.currentPrice ?? 0);
 
-      const snapshot = await synth.evaluateRuleBased(symbol, dbTimeframe, price, zones);
+      const snapshot = await synth.evaluateRuleBased(symbol, timeframe, price, zones);
       const aiResult = await synth.getAiNarrative(symbol, snapshot, zones);
 
       res.json(aiResult);
