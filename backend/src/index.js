@@ -139,6 +139,54 @@ async function bootstrap() {
     }
   });
 
+  // ── Step-by-step debug endpoint ── helps diagnose which step is failing
+  app.get('/api/debug-analyze/:symbol/:timeframe', async (req, res) => {
+    const { symbol, timeframe } = req.params;
+    const report = {};
+    try {
+      report.step = 'detector';
+      const zones = await detector.detect(symbol, timeframe);
+      report.zones_ok = !!zones;
+      report.zones_candles = zones ? 'got zones' : 'null (not enough candles)';
+
+      report.step = 'engine';
+      const latestInds = engine.getLatest(symbol, timeframe);
+      report.indicators_ok = !!latestInds;
+      report.indicators = latestInds ? Object.keys(latestInds) : 'none';
+
+      const price = (latestInds ? latestInds.ema9 : 0) || (zones?.currentPrice ?? 0);
+      report.price = price;
+
+      report.step = 'technical_lane';
+      const techLaneResult = techLane.evaluate(symbol, timeframe, price, zones?.marketStructure ?? null);
+      report.technical = techLaneResult;
+
+      report.step = 'flow_lane';
+      const flowResult = flowLane.evaluate(symbol);
+      report.flow = flowResult;
+
+      report.step = 'narrative_lane';
+      const narResult = narrativeLane.evaluate(symbol);
+      report.narrative = narResult;
+
+      report.step = 'macro_lane';
+      const macroResult = await macroLane.evaluate(symbol);
+      report.macro = macroResult;
+
+      report.step = 'evaluateRuleBased';
+      const snapshot = await synth.evaluateRuleBased(symbol, timeframe, price, zones);
+      report.snapshot = { verdict: snapshot.verdict, confidence: snapshot.confidence };
+
+      report.step = 'done';
+      report.ok = true;
+      res.json(report);
+    } catch (err) {
+      report.error = err.message;
+      report.stack = err.stack?.split('\n').slice(0, 5).join(' | ');
+      res.status(500).json(report);
+    }
+  });
+
   app.post('/api/analyze/:symbol/:timeframe', async (req, res) => {
     try {
       const { symbol, timeframe } = req.params;
@@ -152,8 +200,8 @@ async function bootstrap() {
 
       res.json(aiResult);
     } catch (err) {
-      console.error('Analyze error:', err.message);
-      res.status(500).json({ error: err.message });
+      console.error('Analyze error:', err.message, err.stack);
+      res.status(500).json({ error: err.message, stack: err.stack?.split('\n').slice(0, 3).join(' | ') });
     }
   });
 

@@ -1,12 +1,42 @@
-const YahooFinance = require('yahoo-finance2').default;
-const yahooFinance = new YahooFinance();
+const https = require('https');
 
 class MacroLane {
   constructor() {
-    // Cache DXY + SPX so the Analyze call stays fast
     this._cache     = null;
     this._cacheTime = 0;
     this._cacheTtl  = 15 * 60 * 1000; // 15 minutes
+  }
+
+  /**
+   * Fetch a Yahoo Finance quote for a symbol using a direct HTTPS call.
+   * Returns regularMarketChangePercent or 0 on any failure.
+   */
+  _fetchYahooQuote(symbol) {
+    return new Promise((resolve) => {
+      const url = `https://query1.finance.yahoo.com/v8/finance/quote?symbols=${encodeURIComponent(symbol)}&fields=regularMarketChangePercent,regularMarketPrice`;
+      const options = {
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+        timeout: 5000,
+      };
+      const req = https.get(url, options, (res) => {
+        let raw = '';
+        res.on('data', chunk => { raw += chunk; });
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(raw);
+            const result = json?.quoteResponse?.result?.[0];
+            resolve({
+              changePercent: result?.regularMarketChangePercent ?? 0,
+              price:         result?.regularMarketPrice ?? null,
+            });
+          } catch {
+            resolve({ changePercent: 0, price: null });
+          }
+        });
+      });
+      req.on('error', () => resolve({ changePercent: 0, price: null }));
+      req.on('timeout', () => { req.destroy(); resolve({ changePercent: 0, price: null }); });
+    });
   }
 
   async _fetchMacro() {
@@ -16,29 +46,42 @@ class MacroLane {
     }
 
     try {
-      // DXY — Dollar Index
-      const dxyResult = await yahooFinance.quote('DX-Y.NYB');
-      const dxyChange = dxyResult?.regularMarketChangePercent ?? 0;
-      const dxyPrice  = dxyResult?.regularMarketPrice ?? null;
+      // Fetch DXY and SPX in parallel with 5-sec timeout each
+      const [dxy, spx] = await Promise.all([
+        this._fetchYahooQuote('DX-Y.NYB'),
+        this._fetchYahooQuote('%5EGSPC'),  // ^GSPC URL-encoded
+      ]);
 
-      // SPX — Risk sentiment proxy
-      const spxResult = await yahooFinance.quote('^GSPC');
-      const spxChange = spxResult?.regularMarketChangePercent ?? 0;
-      const riskOn    = spxChange >= 0;
+      const data = {
+        dxyChange: dxy.changePercent,
+        dxyPrice:  dxy.price,
+        spxChange: spx.changePercent,
+        riskOn:    spx.changePercent >= 0,
+      };
 
-      const data = { dxyChange, dxyPrice, spxChange, riskOn };
       this._cache     = data;
       this._cacheTime = now;
       return data;
     } catch (err) {
-      console.error('MacroLane: failed to fetch DXY/SPX:', err.message);
-      // Return stale cache if available, else fallback
+      console.error('MacroLane._fetchMacro error:', err.message);
+      // Return stale cache if available, else neutral fallback
       return this._cache ?? { dxyChange: 0, dxyPrice: null, spxChange: 0, riskOn: true };
     }
   }
 
   async evaluate(symbol) {
-    const { dxyChange, dxyPrice, spxChange, riskOn } = await this._fetchMacro();
+    let dxyChange = 0, dxyPrice = null, spxChange = 0, riskOn = true;
+
+    try {
+      const macro = await this._fetchMacro();
+      dxyChange = macro.dxyChange;
+      dxyPrice  = macro.dxyPrice;
+      spxChange = macro.spxChange;
+      riskOn    = macro.riskOn;
+    } catch (err) {
+      console.error('MacroLane.evaluate fetch error:', err.message);
+      // Use neutral fallback — don't crash the analysis
+    }
 
     let score = 0;
     const basis = [];
@@ -61,21 +104,17 @@ class MacroLane {
     const spxDesc = `SPX ${spxChange >= 0 ? '+' : ''}${spxChange.toFixed(2)}%`;
     if (riskOn) {
       if (['AUD_USD', 'EUR_USD', 'GBP_USD'].includes(symbol)) {
-        score += 15;
-        basis.push(`Risk-on (${spxDesc}) — favors base`);
+        score += 15; basis.push(`Risk-on (${spxDesc}) — favors base`);
       } else if (symbol === 'USD_JPY') {
-        score += 15;
-        basis.push(`Risk-on (${spxDesc}) — JPY weakness`);
+        score += 15; basis.push(`Risk-on (${spxDesc}) — JPY weakness`);
       } else {
         basis.push(`Risk-on (${spxDesc})`);
       }
     } else {
       if (['AUD_USD', 'EUR_USD', 'GBP_USD'].includes(symbol)) {
-        score -= 15;
-        basis.push(`Risk-off (${spxDesc}) — hurts base`);
+        score -= 15; basis.push(`Risk-off (${spxDesc}) — hurts base`);
       } else if (symbol === 'USD_JPY') {
-        score -= 15;
-        basis.push(`Risk-off (${spxDesc}) — JPY strength`);
+        score -= 15; basis.push(`Risk-off (${spxDesc}) — JPY strength`);
       } else {
         basis.push(`Risk-off (${spxDesc})`);
       }

@@ -17,13 +17,22 @@ class Synthesizer {
    */
   async evaluateRuleBased(symbol, timeframe, currentPrice, zones) {
     const marketStructure = zones?.marketStructure ?? null;
+    const LANE_FALLBACK = { bias: 'mixed', tier: 'low', score: 0, basis: 'Lane unavailable' };
 
-    const [t, f, n, m] = await Promise.all([
-      Promise.resolve(this.lanes.technical.evaluate(symbol, timeframe, currentPrice, marketStructure)),
-      Promise.resolve(this.lanes.flow.evaluate(symbol)),
-      Promise.resolve(this.lanes.narrative.evaluate(symbol)),
-      this.lanes.macro.evaluate(symbol),
-    ]);
+    // Evaluate each lane independently — a single failure returns a neutral fallback
+    let t = LANE_FALLBACK, f = LANE_FALLBACK, n = LANE_FALLBACK, m = LANE_FALLBACK;
+
+    try { t = this.lanes.technical.evaluate(symbol, timeframe, currentPrice, marketStructure); }
+    catch (err) { console.error('TechnicalLane error:', err.message); }
+
+    try { f = this.lanes.flow.evaluate(symbol); }
+    catch (err) { console.error('FlowLane error:', err.message); }
+
+    try { n = this.lanes.narrative.evaluate(symbol); }
+    catch (err) { console.error('NarrativeLane error:', err.message); }
+
+    try { m = await this.lanes.macro.evaluate(symbol); }
+    catch (err) { console.error('MacroLane error:', err.message); }
 
     let bullScore = 0, bearScore = 0;
     [t, f, n, m].forEach(lane => {
@@ -35,19 +44,18 @@ class Synthesizer {
     if      (bullScore > bearScore + 40) { verdict = 'LONG';  confidence = bullScore > 80 ? 'high' : 'moderate'; }
     else if (bearScore > bullScore + 40) { verdict = 'SHORT'; confidence = bearScore > 80 ? 'high' : 'moderate'; }
 
-    // Basic watch zone from S/R
-    let watch_zone  = 'No clear zone';
+    let watch_zone   = 'No clear zone';
     let invalidation = [];
 
-    if (zones) {
-      if (zones.support?.length > 0 && verdict === 'LONG') {
+    try {
+      if (zones?.support?.length > 0 && verdict === 'LONG') {
         watch_zone = `Support at ${zones.support[0].price.toFixed(5)}`;
         invalidation.push(`Close below ${zones.support[0].min.toFixed(5)}`);
-      } else if (zones.resistance?.length > 0 && verdict === 'SHORT') {
+      } else if (zones?.resistance?.length > 0 && verdict === 'SHORT') {
         watch_zone = `Resistance at ${zones.resistance[0].price.toFixed(5)}`;
         invalidation.push(`Close above ${zones.resistance[0].max.toFixed(5)}`);
       }
-    }
+    } catch (err) { console.error('Watch zone error:', err.message); }
 
     return { verdict, confidence, lanes: { technical: t, flow: f, narrative: n, macro: m }, watch_zone, invalidation };
   }

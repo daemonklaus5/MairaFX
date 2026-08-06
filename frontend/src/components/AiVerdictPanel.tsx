@@ -64,12 +64,22 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
     setError('');
     try {
       const res = await fetch(`/api/analyze/${symbol}/${timeframe}`, { method: 'POST' });
-      if (!res.ok) throw new Error('API Error');
+      if (!res.ok) {
+        // Try to get the actual error message from the response body
+        let errMsg = `Server error (${res.status})`;
+        try {
+          const errBody = await res.json();
+          if (errBody?.error) errMsg = `${errMsg}: ${errBody.error}`;
+          if (errBody?.stack) errMsg += ` | ${errBody.stack}`;
+        } catch { /* ignore parse errors */ }
+        throw new Error(errMsg);
+      }
       const json: AiResult = await res.json();
       setData(json);
       if (json.lanes) onAnalyzed(json.lanes);
-    } catch {
-      setError('Analysis failed. Check your connection and try again.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Analysis failed. Check your connection.';
+      setError(msg);
     }
     setLoading(false);
   };
