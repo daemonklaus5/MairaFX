@@ -49,9 +49,6 @@ async function runMigrations() {
     `);
     
     
-    // Clear old candle data to force fresh backfill with bid pricing
-    await db.query(`TRUNCATE TABLE candles`);
-    console.log('Cleared stale candle data for fresh backfill.');
     console.log('Migrations completed successfully.');
   } catch (err) {
     console.error('Error running migrations', err);
