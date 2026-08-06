@@ -184,7 +184,7 @@ ${JSON.stringify(ictContext, null, 2)}
         const keyIndex = Math.floor(Math.random() * availableKeys.length);
         const apiKey = availableKeys[keyIndex];
         const genAI = new GoogleGenerativeAI(apiKey);
-        const ai = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const ai = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite" });
 
         try {
           // Tell it to output JSON
