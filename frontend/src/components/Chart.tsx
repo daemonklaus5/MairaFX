@@ -78,10 +78,7 @@ export function Chart({ symbol, timeframe }: ChartProps) {
     ema50SeriesRef.current = ema50;
     ema200SeriesRef.current = ema200;
 
-    // Load initial historical candles if we had them
-    if (candles.length > 0) {
-      candleSeries.setData(candles as any);
-    }
+    // Removed redundant initial setData call to rely entirely on the [candles] useEffect
 
     return () => {
       chart.remove();

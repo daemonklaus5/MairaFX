@@ -71,7 +71,7 @@ class OandaClient {
         placeholders.push(`($${i++}, $${i++}, $${i++}, $${i++}, $${i++}, $${i++}, $${i++}, $${i++})`);
         values.push(
           symbol,
-          internalTf,
+          tf,
           candle.time,
           parseFloat(candle.mid.o),
           parseFloat(candle.mid.h),

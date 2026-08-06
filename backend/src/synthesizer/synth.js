@@ -75,7 +75,9 @@ schema: { verdict: "WAIT"|"LONG"|"SHORT", reasoning: string,
 watch_zone: string, invalidation: string[] }.
 
 Rules:
-- Use ONLY the numbers given in the input JSON. Never invent a price, RSI
+- When discussing Institutional COT positioning, DO NOT use words like "heavily" or "extreme" unless the net positioning is strictly > 40%.
+- If COT net positioning is under 30%, explicitly refer to it as "mildly positioned" or "slightly leaning".
+- Base your core verdict purely on the provided data without hallucinating external news. Never invent a price, RSI
   value, or percentage not present in the input.
 - Keep reasoning under 80 words.
 - No hedging language like "might" or "could possibly" — state the verdict

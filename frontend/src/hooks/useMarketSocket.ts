@@ -23,6 +23,14 @@ export function useMarketSocket(symbol: string, timeframe: string) {
   const [indicators, setIndicators] = useState<Indicators | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const ws = useRef<WebSocket | null>(null);
+  const [prevKey, setPrevKey] = useState(`${symbol}_${timeframe}`);
+
+  if (`${symbol}_${timeframe}` !== prevKey) {
+    setPrevKey(`${symbol}_${timeframe}`);
+    setCandles([]);
+    setCurrentTick(null);
+    setIndicators(null);
+  }
 
   const connect = useCallback(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
