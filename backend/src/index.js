@@ -196,16 +196,11 @@ async function bootstrap() {
       
       const { GoogleGenerativeAI } = require('@google/generative-ai');
       const genAI = new GoogleGenerativeAI(apiKeys[0]);
-      const modelName = req.query.model || 'gemini-1.5-flash';
-      const ai = genAI.getGenerativeModel({ model: modelName });
       
-      const result = await ai.generateContent({
-        contents: [{ role: 'user', parts: [{ text: 'Say "hello world" in JSON format like {"msg":"hello world"}' }] }],
-        generationConfig: { responseMimeType: "application/json" }
-      });
-      const response = await result.response;
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKeys[0]}`);
+      const data = await response.json();
       
-      res.json({ success: true, keysFound: apiKeys.length, response: response.text() });
+      res.json({ success: true, keysFound: apiKeys.length, models: data.models?.map(m => m.name) || data });
     } catch (err) {
       const rawKey = process.env.GEMINI_API_KEY || '';
       const apiKeys = rawKey.split(',').map(k => k.trim()).filter(Boolean);
