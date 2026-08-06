@@ -95,17 +95,17 @@ function App() {
         </div>
       </header>
 
-      {/* ── Body: chart fixed left, right panel scrollable ── */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* ── Body: chart on top on mobile, side-by-side on desktop ── */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
 
         {/* Left: Chart — fills remaining height, never scrolls */}
-        <div className="flex-1 overflow-hidden p-3 md:p-4">
+        <div className="flex-1 min-h-[400px] lg:min-h-0 overflow-hidden p-3 md:p-4">
           <Chart symbol={symbol} timeframe={timeframe} />
         </div>
 
         {/* Right: Sidebar — independent scroll */}
         <div
-          className="w-[280px] lg:w-[300px] xl:w-[320px] shrink-0 overflow-y-auto border-l border-gray-800 p-3 space-y-3 text-sm"
+          className="w-full lg:w-[300px] xl:w-[320px] shrink-0 overflow-y-auto lg:border-l border-t lg:border-t-0 border-gray-800 p-3 space-y-3 text-sm bg-darker/50"
           style={{ scrollbarGutter: 'stable' }}
         >
           {/* 1. AI Read / Analyze button */}
