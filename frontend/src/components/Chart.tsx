@@ -1,129 +1,97 @@
 import { useEffect, useRef } from 'react';
-import { createChart, ColorType, CrosshairMode, CandlestickSeries, LineSeries } from 'lightweight-charts';
-import type { IChartApi, ISeriesApi } from 'lightweight-charts';
-import { useMarketSocket } from '../hooks/useMarketSocket';
 
 interface ChartProps {
   symbol: string;
   timeframe: string;
 }
 
-export function Chart({ symbol, timeframe }: ChartProps) {
-  const chartContainerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<IChartApi | null>(null);
-  const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
-  const ema9SeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
-  const ema21SeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
-  const ema50SeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
-  const ema200SeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+// Map our internal symbols to TradingView's OANDA format
+function toTvSymbol(symbol: string): string {
+  return `OANDA:${symbol.replace('_', '')}`;
+}
 
-  const { candles, currentTick, indicators, isConnected } = useMarketSocket(symbol, timeframe);
+// Map our timeframes to TradingView's interval format
+function toTvInterval(timeframe: string): string {
+  const map: Record<string, string> = {
+    '15m': '15',
+    '1H': '60',
+    '4H': '240',
+    '1D': 'D',
+  };
+  return map[timeframe] || '15';
+}
+
+export function Chart({ symbol, timeframe }: ChartProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const widgetRef = useRef<any>(null);
 
   useEffect(() => {
-    if (!chartContainerRef.current) return;
+    if (!containerRef.current) return;
 
-    const chart = createChart(chartContainerRef.current, {
-      layout: {
-        background: { type: ColorType.Solid, color: 'transparent' },
-        textColor: '#d1d5db',
-      },
-      grid: {
-        vertLines: { color: 'rgba(42, 46, 57, 0.5)' },
-        horzLines: { color: 'rgba(42, 46, 57, 0.5)' },
-      },
-      crosshair: {
-        mode: CrosshairMode.Normal,
-      },
-      rightPriceScale: {
-        borderColor: '#374151',
-      },
-      timeScale: {
-        borderColor: '#374151',
-        timeVisible: true,
-        secondsVisible: false,
-      },
-      autoSize: true,
-    });
+    // Clear previous widget
+    containerRef.current.innerHTML = '';
 
-    chartRef.current = chart;
+    const script = document.createElement('script');
+    script.src = 'https://s3.tradingview.com/tv.js';
+    script.async = true;
+    script.onload = () => {
+      if (!(window as any).TradingView || !containerRef.current) return;
 
-    const isJpy = symbol.includes('JPY');
-    const precision = isJpy ? 3 : 5;
-    const minMove = isJpy ? 0.001 : 0.00001;
-
-    const priceFormat = {
-      type: 'price' as const,
-      precision: precision,
-      minMove: minMove,
+      widgetRef.current = new (window as any).TradingView.widget({
+        container_id: containerRef.current.id,
+        autosize: true,
+        symbol: toTvSymbol(symbol),
+        interval: toTvInterval(timeframe),
+        timezone: 'Etc/UTC',
+        theme: 'dark',
+        style: '1', // Candlestick
+        locale: 'en',
+        toolbar_bg: '#0b0e14',
+        enable_publishing: false,
+        allow_symbol_change: false,
+        hide_top_toolbar: false,
+        hide_legend: false,
+        save_image: false,
+        backgroundColor: '#0b0e14',
+        gridColor: 'rgba(42, 46, 57, 0.3)',
+        studies: [],
+        disabled_features: [
+          'use_localstorage_for_settings',
+          'header_symbol_search',
+          'header_compare',
+        ],
+        enabled_features: [
+          'hide_left_toolbar_by_default',
+        ],
+        overrides: {
+          'mainSeriesProperties.candleStyle.upColor': '#26a69a',
+          'mainSeriesProperties.candleStyle.downColor': '#ef5350',
+          'mainSeriesProperties.candleStyle.wickUpColor': '#26a69a',
+          'mainSeriesProperties.candleStyle.wickDownColor': '#ef5350',
+          'mainSeriesProperties.candleStyle.borderUpColor': '#26a69a',
+          'mainSeriesProperties.candleStyle.borderDownColor': '#ef5350',
+          'paneProperties.background': '#0b0e14',
+          'paneProperties.backgroundType': 'solid',
+        },
+      });
     };
 
-    const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#26a69a',
-      downColor: '#ef5350',
-      borderVisible: true,
-      borderUpColor: '#26a69a',
-      borderDownColor: '#ef5350',
-      wickUpColor: '#26a69a',
-      wickDownColor: '#ef5350',
-      priceFormat: priceFormat,
-    });
-    
-    candleSeriesRef.current = candleSeries;
-
-    const ema9 = chart.addSeries(LineSeries, { color: '#3b82f6', lineWidth: 1, priceFormat });
-    const ema21 = chart.addSeries(LineSeries, { color: '#f59e0b', lineWidth: 2, priceFormat });
-    const ema50 = chart.addSeries(LineSeries, { color: '#8b5cf6', lineWidth: 2, priceFormat });
-    const ema200 = chart.addSeries(LineSeries, { color: '#ec4899', lineWidth: 3, priceFormat });
-
-    ema9SeriesRef.current = ema9;
-    ema21SeriesRef.current = ema21;
-    ema50SeriesRef.current = ema50;
-    ema200SeriesRef.current = ema200;
-
-    // Removed redundant initial setData call to rely entirely on the [candles] useEffect
+    document.head.appendChild(script);
 
     return () => {
-      chart.remove();
+      if (containerRef.current) {
+        containerRef.current.innerHTML = '';
+      }
     };
-  }, [symbol, timeframe]); // Re-init on symbol/timeframe change
-
-  // Set historical data when it arrives
-  useEffect(() => {
-    if (candles.length > 0 && candleSeriesRef.current) {
-      candleSeriesRef.current.setData(candles as any);
-    }
-  }, [candles]);
-
-  // Update current tick
-  useEffect(() => {
-    if (currentTick && candleSeriesRef.current) {
-      candleSeriesRef.current.update(currentTick as any);
-    }
-  }, [currentTick]);
-
-  // Update indicators
-  useEffect(() => {
-    if (indicators && currentTick) {
-      if (indicators.ema9) ema9SeriesRef.current?.update({ time: currentTick.time as any, value: indicators.ema9 });
-      if (indicators.ema21) ema21SeriesRef.current?.update({ time: currentTick.time as any, value: indicators.ema21 });
-      if (indicators.ema50) ema50SeriesRef.current?.update({ time: currentTick.time as any, value: indicators.ema50 });
-      if (indicators.ema200) ema200SeriesRef.current?.update({ time: currentTick.time as any, value: indicators.ema200 });
-    }
-  }, [indicators, currentTick]);
+  }, [symbol, timeframe]);
 
   return (
     <div className="relative w-full h-[350px] md:h-[600px] bg-panel rounded-lg overflow-hidden border border-gray-800">
-      {/* Header */}
-      <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-10 pointer-events-none">
-        <div className="flex items-center gap-4 bg-dark/80 px-4 py-2 rounded-md backdrop-blur-sm pointer-events-auto border border-gray-800">
-          <span className="font-bold text-lg text-white">{symbol.replace('_', '/')}</span>
-          <span className="text-gray-400 font-mono">{timeframe}</span>
-          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-bull' : 'bg-bear'}`} title={isConnected ? 'Connected' : 'Disconnected'} />
-        </div>
-      </div>
-      
-      {/* Chart container */}
-      <div ref={chartContainerRef} className="w-full h-full" />
+      <div
+        id="tradingview-widget"
+        ref={containerRef}
+        className="w-full h-full"
+      />
     </div>
   );
 }
