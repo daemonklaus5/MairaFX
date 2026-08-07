@@ -1,37 +1,36 @@
+const rateFetcher = require('../ingestion/rate_fetcher');
+
 class FlowLane {
   constructor(cotJob) {
     this.cotJob = cotJob;
-    // Hardcoded config as per specs, normally loaded from DB
-    this.rates = {
-      'USD': 5.50,
-      'EUR': 4.50,
-      'GBP': 5.25,
-      'JPY': 0.10,
-      'AUD': 4.35
-    };
   }
 
-  evaluate(symbol) {
+  async evaluate(symbol) {
     let score = 0;
     const basis = [];
     const [base, quote] = symbol.split('_');
 
-    const baseRate = this.rates[base] || 0;
-    const quoteRate = this.rates[quote] || 0;
+    // Fetch live central bank rates (24h cached; falls back to hardcoded defaults)
+    const rates = await rateFetcher.getRates();
+
+    const baseRate  = rates[base]  ?? 0;
+    const quoteRate = rates[quote] ?? 0;
     const diff = baseRate - quoteRate;
 
     if (diff > 1.0) {
       score += 20;
-      basis.push(`Strong positive carry (+${diff.toFixed(2)}%)`);
+      basis.push(`Strong positive carry (+${diff.toFixed(2)}% — ${base} ${baseRate}% vs ${quote} ${quoteRate}%)`);
     } else if (diff > 0) {
       score += 10;
-      basis.push(`Positive carry (+${diff.toFixed(2)}%)`);
+      basis.push(`Positive carry (+${diff.toFixed(2)}% — ${base} ${baseRate}% vs ${quote} ${quoteRate}%)`);
     } else if (diff < -1.0) {
       score -= 20;
-      basis.push(`Strong negative carry (${diff.toFixed(2)}%)`);
+      basis.push(`Strong negative carry (${diff.toFixed(2)}% — ${base} ${baseRate}% vs ${quote} ${quoteRate}%)`);
     } else if (diff < 0) {
       score -= 10;
-      basis.push(`Negative carry (${diff.toFixed(2)}%)`);
+      basis.push(`Negative carry (${diff.toFixed(2)}% — ${base} ${baseRate}% vs ${quote} ${quoteRate}%)`);
+    } else {
+      basis.push(`Neutral carry (${base} ${baseRate}% = ${quote} ${quoteRate}%)`);
     }
 
     const cotData = this.cotJob ? this.cotJob.getLatest(symbol) : null;

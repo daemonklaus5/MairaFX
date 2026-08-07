@@ -222,26 +222,33 @@ class ZoneDetector {
   }
 
   /**
-   * Volume Profile - Calculate Point of Control (POC)
+   * Volume Profile - Calculate Point of Control (POC).
+   * Uses real volume when available; falls back to equal-weight (1 tick per candle)
+   * when all volume values are zero (e.g. OANDA practice accounts).
+   * Returns { price, source } where source is 'volume' or 'price_activity'.
    */
   calculateVolumeProfile(candles) {
     if (!candles || candles.length === 0) return null;
-    
-    // Bucket size depends on the price range (e.g. 50 buckets)
+
     const prices = candles.map(c => parseFloat(c.close));
     const min = Math.min(...prices);
     const max = Math.max(...prices);
-    if (min === max) return min;
+    if (min === max) return { price: min, source: 'price_activity' };
 
     const numBuckets = 50;
     const bucketSize = (max - min) / numBuckets;
     const profile = Array(numBuckets).fill(0);
 
+    // Check whether we have any real volume data
+    const totalVolume = candles.reduce((sum, c) => sum + (parseFloat(c.volume) || 0), 0);
+    const useRealVolume = totalVolume > 0;
+
     for (const c of candles) {
       const p = parseFloat(c.close);
-      const v = parseFloat(c.volume) || 0;
+      // Use real volume if available, otherwise count each candle equally (tick-count proxy)
+      const v = useRealVolume ? (parseFloat(c.volume) || 0) : 1;
       if (v <= 0) continue;
-      
+
       let bucketIdx = Math.floor((p - min) / bucketSize);
       if (bucketIdx >= numBuckets) bucketIdx = numBuckets - 1;
       profile[bucketIdx] += v;
@@ -257,7 +264,11 @@ class ZoneDetector {
     }
 
     if (pocIdx === -1) return null;
-    return min + (pocIdx * bucketSize) + (bucketSize / 2); // Return middle of the POC bucket
+
+    return {
+      price:  min + (pocIdx * bucketSize) + (bucketSize / 2),
+      source: useRealVolume ? 'volume' : 'price_activity',
+    };
   }
 
   async detect(symbol, timeframe) {

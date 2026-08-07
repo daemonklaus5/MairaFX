@@ -13,26 +13,25 @@ class Synthesizer {
 
   /**
    * Evaluate all rule-based lanes and produce a rule-based verdict.
-   * Now async because MacroLane.evaluate() fetches live DXY/SPX.
+   * All lanes are now async (FlowLane fetches live rates, NarrativeLane fetches news).
+   * Uses Promise.allSettled so a single lane failure never crashes the whole analysis.
    */
   async evaluateRuleBased(symbol, timeframe, currentPrice, zones) {
     const marketStructure = zones?.marketStructure ?? null;
     const LANE_FALLBACK = { bias: 'mixed', tier: 'low', score: 0, basis: 'Lane unavailable' };
 
-    // Evaluate each lane independently — a single failure returns a neutral fallback
-    let t = LANE_FALLBACK, f = LANE_FALLBACK, n = LANE_FALLBACK, m = LANE_FALLBACK;
+    // Run all four lanes in parallel — each settles independently
+    const [tRes, fRes, nRes, mRes] = await Promise.allSettled([
+      Promise.resolve().then(() => this.lanes.technical.evaluate(symbol, timeframe, currentPrice, marketStructure)),
+      this.lanes.flow.evaluate(symbol),
+      this.lanes.narrative.evaluate(symbol),
+      this.lanes.macro.evaluate(symbol),
+    ]);
 
-    try { t = this.lanes.technical.evaluate(symbol, timeframe, currentPrice, marketStructure); }
-    catch (err) { console.error('TechnicalLane error:', err.message); }
-
-    try { f = this.lanes.flow.evaluate(symbol); }
-    catch (err) { console.error('FlowLane error:', err.message); }
-
-    try { n = this.lanes.narrative.evaluate(symbol); }
-    catch (err) { console.error('NarrativeLane error:', err.message); }
-
-    try { m = await this.lanes.macro.evaluate(symbol); }
-    catch (err) { console.error('MacroLane error:', err.message); }
+    const t = tRes.status === 'fulfilled' ? tRes.value : (console.error('TechnicalLane error:', tRes.reason?.message), LANE_FALLBACK);
+    const f = fRes.status === 'fulfilled' ? fRes.value : (console.error('FlowLane error:',     fRes.reason?.message), LANE_FALLBACK);
+    const n = nRes.status === 'fulfilled' ? nRes.value : (console.error('NarrativeLane error:', nRes.reason?.message), LANE_FALLBACK);
+    const m = mRes.status === 'fulfilled' ? mRes.value : (console.error('MacroLane error:',     mRes.reason?.message), LANE_FALLBACK);
 
     let bullScore = 0, bearScore = 0;
     [t, f, n, m].forEach(lane => {
@@ -94,9 +93,13 @@ class Synthesizer {
 
     ctx.current_price = zones.currentPrice;
 
-    // 4. Volume Profile
+    // 4. Volume Profile — POC is now { price, source } or null
     if (zones.volumePOC) {
-      ctx.volume_point_of_control = zones.volumePOC.toFixed(5);
+      const poc = zones.volumePOC;
+      // Support both old bare-number shape and new {price, source} shape
+      const pocPrice  = typeof poc === 'object' ? poc.price  : poc;
+      const pocSource = typeof poc === 'object' ? poc.source : 'volume';
+      ctx.volume_point_of_control = `${pocPrice.toFixed(5)} (${pocSource === 'price_activity' ? 'price-activity proxy' : 'volume-weighted'})`;
     }
 
     if (zones.marketStructure) {
