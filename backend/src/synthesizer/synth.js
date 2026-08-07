@@ -14,18 +14,24 @@ class Synthesizer {
   /**
    * Evaluate all rule-based lanes and produce a rule-based verdict.
    * All lanes are now async (FlowLane fetches live rates, NarrativeLane fetches news).
-   * Uses Promise.allSettled so a single lane failure never crashes the whole analysis.
+   * Each lane has an 8s hard timeout — a hung lane falls back to neutral, never blocks.
    */
   async evaluateRuleBased(symbol, timeframe, currentPrice, zones) {
     const marketStructure = zones?.marketStructure ?? null;
     const LANE_FALLBACK = { bias: 'mixed', tier: 'low', score: 0, basis: 'Lane unavailable' };
 
-    // Run all four lanes in parallel — each settles independently
+    // Per-lane hard timeout: if a lane hangs (e.g. Yahoo Finance), fall back cleanly
+    const withLaneTimeout = (promise, name) => Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error(`${name} timed out`)), 8000))
+    ]);
+
+    // Run all four lanes in parallel — each settles independently within 8s
     const [tRes, fRes, nRes, mRes] = await Promise.allSettled([
-      Promise.resolve().then(() => this.lanes.technical.evaluate(symbol, timeframe, currentPrice, marketStructure)),
-      this.lanes.flow.evaluate(symbol),
-      this.lanes.narrative.evaluate(symbol),
-      this.lanes.macro.evaluate(symbol),
+      withLaneTimeout(Promise.resolve().then(() => this.lanes.technical.evaluate(symbol, timeframe, currentPrice, marketStructure)), 'TechnicalLane'),
+      withLaneTimeout(this.lanes.flow.evaluate(symbol),      'FlowLane'),
+      withLaneTimeout(this.lanes.narrative.evaluate(symbol), 'NarrativeLane'),
+      withLaneTimeout(this.lanes.macro.evaluate(symbol),     'MacroLane'),
     ]);
 
     const t = tRes.status === 'fulfilled' ? tRes.value : (console.error('TechnicalLane error:', tRes.reason?.message), LANE_FALLBACK);

@@ -13,14 +13,16 @@ class MacroLane {
       return this._cache;
     }
 
+    // Hard 6s timeout — Yahoo Finance can hang indefinitely
+    const withTimeout = (promise, ms) =>
+      Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('Yahoo timeout')), ms))]);
+
     try {
-      // Use yahooFinance2 to handle cookies/headers automatically
-      // Suppress logging of warnings to avoid terminal spam
       yahooFinance.suppressNotices(['yahooSurvey']);
-      
+
       const [dxy, spx] = await Promise.all([
-        yahooFinance.quote('DX-Y.NYB').catch(() => null),
-        yahooFinance.quote('^GSPC').catch(() => null),
+        withTimeout(yahooFinance.quote('DX-Y.NYB'), 6000).catch(() => null),
+        withTimeout(yahooFinance.quote('^GSPC'),    6000).catch(() => null),
       ]);
 
       const data = {
