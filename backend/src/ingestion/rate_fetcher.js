@@ -21,10 +21,12 @@ const FALLBACK_RATES = {
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
+const FETCH_TIMEOUT_MS = 5000; // 5 seconds — bail fast on slow APIs
+
 function httpsGet(url) {
   return new Promise((resolve, reject) => {
-    const options = { headers: { 'User-Agent': 'ForexAI/1.0' } };
-    https.get(url, options, (res) => {
+    const options = { headers: { 'User-Agent': 'ForexAI/1.0' }, timeout: FETCH_TIMEOUT_MS };
+    const req = https.get(url, options, (res) => {
       let raw = '';
       res.on('data', (c) => { raw += c; });
       res.on('end', () => {
@@ -32,7 +34,12 @@ function httpsGet(url) {
         catch (e) { reject(new Error(`JSON parse failed for ${url}: ${e.message}`)); }
       });
       res.on('error', reject);
-    }).on('error', reject);
+    });
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error(`Request timed out after ${FETCH_TIMEOUT_MS}ms: ${url}`));
+    });
+    req.on('error', reject);
   });
 }
 

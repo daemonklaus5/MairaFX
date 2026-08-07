@@ -1,13 +1,16 @@
 const https = require('https');
 
+const FETCH_TIMEOUT_MS = 5000;
+
 /**
  * Fetches forex-related news from Finnhub free news API.
  * Returns top N articles sorted by newest first.
+ * Times out after 5 seconds and returns [] gracefully.
  */
 async function fetchForexNews(apiKey, limit = 10) {
   return new Promise((resolve, reject) => {
     const url = `https://finnhub.io/api/v1/news?category=general&token=${apiKey}`;
-    https.get(url, (res) => {
+    const req = https.get(url, { timeout: FETCH_TIMEOUT_MS }, (res) => {
       let raw = '';
       res.on('data', (chunk) => { raw += chunk; });
       res.on('end', () => {
@@ -35,14 +38,16 @@ async function fetchForexNews(apiKey, limit = 10) {
         }
       });
       res.on('error', reject);
-    }).on('error', reject);
+    });
+    req.on('timeout', () => { req.destroy(); resolve([]); }); // timeout → empty, not error
+    req.on('error', reject);
   });
 }
 
 async function fetchEconomicCalendar(apiKey) {
   return new Promise((resolve, reject) => {
     const url = `https://finnhub.io/api/v1/economic?token=${apiKey}`;
-    https.get(url, (res) => {
+    const req = https.get(url, { timeout: FETCH_TIMEOUT_MS }, (res) => {
       let raw = '';
       res.on('data', (chunk) => { raw += chunk; });
       res.on('end', () => {
@@ -52,11 +57,11 @@ async function fetchEconomicCalendar(apiKey) {
             resolve([]);
             return;
           }
-          
-          // Filter for high impact events (impact === 'high' or impact === 3) occurring today
+
+          // Filter for high impact events occurring today
           const today = new Date().toISOString().split('T')[0];
-          const highImpact = events.economicCalendar.filter(e => 
-            (e.impact === 'high' || e.impact === 3 || e.impact === 'High') && 
+          const highImpact = events.economicCalendar.filter(e =>
+            (e.impact === 'high' || e.impact === 3 || e.impact === 'High') &&
             e.time.startsWith(today)
           ).map(e => ({
             event: e.event,
@@ -66,14 +71,16 @@ async function fetchEconomicCalendar(apiKey) {
             estimate: e.estimate,
             actual: e.actual
           }));
-          
+
           resolve(highImpact);
         } catch (e) {
           resolve([]); // Fallback to empty on error
         }
       });
       res.on('error', () => resolve([]));
-    }).on('error', () => resolve([]));
+    });
+    req.on('timeout', () => { req.destroy(); resolve([]); }); // timeout → empty gracefully
+    req.on('error', () => resolve([]));
   });
 }
 

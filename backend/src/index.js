@@ -57,7 +57,18 @@ async function bootstrap() {
   const narrativeLane = new NarrativeLane();
   const macroLane = new MacroLane();
   const synth = new Synthesizer(techLane, flowLane, narrativeLane, macroLane);
-  
+
+  // Warm up caches in the background so the first Analyze click is instant
+  const rateFetcher = require('./ingestion/rate_fetcher');
+  rateFetcher.getRates().then(r => console.log('Rate cache warm:', JSON.stringify(r))).catch(() => {});
+  macroLane.evaluate('EUR_USD').catch(() => {}); // warms DXY/SPX cache
+  if (process.env.FINNHUB_API_KEY) {
+    const { fetchForexNews } = require('./ingestion/finnhub_news');
+    fetchForexNews(process.env.FINNHUB_API_KEY, 20)
+      .then(a => { narrativeLane._cache = a; narrativeLane._cacheTime = Date.now(); console.log(`News cache warm: ${a.length} articles`); })
+      .catch(() => {});
+  }
+
   // REST API
   app.get('/api/zones/:symbol/:timeframe', async (req, res) => {
     const zones = await detector.detect(req.params.symbol, req.params.timeframe);
