@@ -1,4 +1,5 @@
 const yahooFinance = require('yahoo-finance2').default;
+const cotJob = require('../cot/job');
 
 class MacroLane {
   constructor() {
@@ -89,6 +90,21 @@ class MacroLane {
         score -= 15; basis.push(`Risk-off (${spxDesc}) — JPY strength`);
       } else {
         basis.push(`Risk-off (${spxDesc})`);
+      }
+    }
+
+    // ── COT Institutional Momentum (Z-Score) ──
+    const cotData = cotJob.getLatest(symbol);
+    if (cotData && cotData.zScore !== undefined) {
+      const z = cotData.zScore;
+      if (z > 1.5) {
+        if (isUsdQuote) { score += 20; basis.push(`COT Extreme Long (Z: +${z})`); }
+        if (isUsdBase)  { score -= 20; basis.push(`COT Extreme Base Short (Z: +${z})`); }
+      } else if (z < -1.5) {
+        if (isUsdQuote) { score -= 20; basis.push(`COT Extreme Short (Z: ${z})`); }
+        if (isUsdBase)  { score += 20; basis.push(`COT Extreme Base Long (Z: ${z})`); }
+      } else {
+        basis.push(`COT Neutral (Z: ${z > 0 ? '+' : ''}${z})`);
       }
     }
 

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Building2 } from 'lucide-react';
+import { Building2, Flame } from 'lucide-react';
 
 interface CotData {
   netLongPct: number;
-  netShortPct: number;
+  zScore?: number;
+  trend?: string;
   date: string;
 }
 
@@ -24,21 +25,35 @@ export function CotBadge({ symbol }: { symbol: string }) {
     fetchCot();
   }, [symbol]);
 
-  if (!data || (data.netLongPct === undefined && data.netShortPct === undefined)) {
+  if (!data || data.netLongPct === undefined) {
     return null;
   }
 
-  const netPos = data.netLongPct - data.netShortPct;
-  const isLong = netPos >= 0;
+  const isExtreme = data.trend === 'Extreme Long' || data.trend === 'Extreme Short';
+  const isLong = data.netLongPct >= 0;
 
   return (
-    <div className="flex items-center gap-2 bg-panel border border-gray-800 rounded-md px-3 py-1.5 text-sm">
-      <Building2 className="w-4 h-4 text-gray-500" />
+    <div className={`flex items-center gap-2 bg-panel border rounded-md px-3 py-1.5 text-sm transition-colors ${isExtreme ? 'border-orange-500/50 shadow-[0_0_10px_rgba(249,115,22,0.2)]' : 'border-gray-800'}`}>
+      <Building2 className={`w-4 h-4 ${isExtreme ? 'text-orange-400' : 'text-gray-500'}`} />
       <span className="text-gray-400">Inst. COT:</span>
+      
+      {isExtreme && <Flame className="w-3.5 h-3.5 text-orange-500 animate-pulse" />}
+      
       <span className={`font-bold ${isLong ? 'text-bull' : 'text-bear'}`}>
-        {isLong ? 'Net Long' : 'Net Short'} {Math.abs(netPos)}%
+        {data.trend && data.trend !== 'Neutral' ? data.trend : (isLong ? 'Net Long' : 'Net Short') + ' ' + Math.abs(data.netLongPct) + '%'}
       </span>
-      {data.date && <span className="text-xs text-gray-600 ml-2 border-l border-gray-700 pl-2">{new Date(data.date).toLocaleDateString()}</span>}
+      
+      {data.zScore !== undefined && (
+        <span className={`text-xs font-mono ml-1 ${isExtreme ? 'text-orange-300' : 'text-gray-500'}`}>
+          (Z: {data.zScore > 0 ? '+' : ''}{data.zScore})
+        </span>
+      )}
+
+      {data.date && (
+        <span className="text-[10px] text-gray-600 ml-2 border-l border-gray-700 pl-2">
+          {new Date(data.date).toLocaleDateString()}
+        </span>
+      )}
     </div>
   );
 }
