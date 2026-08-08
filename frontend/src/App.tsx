@@ -199,8 +199,8 @@ export default function App() {
 
 
         {/* --- ANALYSIS TAB --- */}
-        <div className={`w-full lg:flex-1 h-full flex-col p-4 md:p-6 overflow-y-auto bg-darker ${activeTab === 'analysis' ? 'flex' : 'hidden'}`}>
-          <div className="max-w-3xl w-full">
+        <div className={`w-full lg:w-1/2 h-full flex-col p-4 md:p-6 overflow-y-auto bg-darker ${activeTab === 'analysis' ? 'flex' : 'hidden'}`}>
+          <div className="w-full">
             <div className="bg-panel rounded-lg border border-gray-800 p-4 shadow-lg">
               <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
                 Rule-Based Lanes
@@ -211,7 +211,7 @@ export default function App() {
         </div>
 
         <div
-          className={`w-full lg:w-[300px] xl:w-[320px] shrink-0 lg:overflow-y-auto lg:border-l border-t lg:border-t-0 border-gray-800 p-3 space-y-3 text-sm bg-darker/50 ${activeTab === 'analysis' ? 'block' : 'hidden'}`}
+          className={`w-full lg:w-1/2 shrink-0 lg:overflow-y-auto lg:border-l border-t lg:border-t-0 border-gray-800 p-4 md:p-6 space-y-4 text-sm bg-darker/50 ${activeTab === 'analysis' ? 'block' : 'hidden'}`}
           style={{ scrollbarGutter: 'stable' }}
         >
           {/* COT Badge moved to the top of Analysis pane */}
