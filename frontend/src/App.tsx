@@ -59,7 +59,9 @@ export default function App() {
     <div className="h-screen flex flex-col bg-darker text-gray-200 overflow-hidden">
       {/* ── Sticky Header ── */}
       <header className="shrink-0 z-50 bg-darker/95 backdrop-blur-md border-b border-gray-800 px-3 py-2 md:px-6 md:py-3">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center justify-between gap-2 h-10 relative">
+          
+          {/* LEFT: Logo */}
           <div className="flex items-center gap-2">
             <img src="/logo.png" alt="MairaFX Logo" className="h-8 md:h-10 object-contain" />
             <h1 className="text-lg md:text-xl font-bold tracking-tight text-white hidden md:block">
@@ -67,88 +69,90 @@ export default function App() {
             </h1>
           </div>
 
-          <div className="flex items-center gap-4">
-            {/* 2-Button Toggle */}
-            <div className="flex bg-gray-900 rounded-md p-0.5 border border-gray-700">
-              <button
-                onClick={() => setActiveTab('chart')}
-                className={`px-4 py-1.5 rounded text-xs font-bold transition-colors ${
-                  activeTab === 'chart' ? 'bg-primary text-darker shadow-sm' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Chart
-              </button>
-              <button
-                onClick={() => setActiveTab('analysis')}
-                className={`px-4 py-1.5 rounded text-xs font-bold transition-colors ${
-                  activeTab === 'analysis' ? 'bg-primary text-darker shadow-sm' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Analysis
-              </button>
-            </div>
-
-            {/* Global Search Overlay (only on chart tab) */}
-            {activeTab === 'chart' && (
-              <div className="relative z-50 hidden md:block">
-                <div 
-                  className={`flex items-center bg-gray-900 border ${isSearching ? 'border-primary' : 'border-gray-700'} rounded-md px-3 py-1.5 w-48 transition-colors`}
-                >
-                  <Search className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
-                  <input 
-                    type="text"
-                    placeholder={symbol.replace('_', '/')}
-                    value={searchQuery}
-                    onFocus={() => setIsSearching(true)}
-                    onBlur={() => setTimeout(() => setIsSearching(false), 200)}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="bg-transparent text-sm text-white focus:outline-none w-full font-bold placeholder-white"
-                  />
-                </div>
-
-                {isSearching && (
-                  <div className="absolute top-full left-0 mt-1 w-full bg-gray-900 border border-gray-700 rounded-md shadow-xl max-h-[250px] overflow-y-auto">
-                    {filteredPairs.map(p => (
-                      <button
-                        key={p}
-                        onMouseDown={() => {
-                          setSymbol(p);
-                          setSearchQuery('');
-                          setIsSearching(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
-                      >
-                        {p.replace('_', '/')}
-                      </button>
-                    ))}
-                    {filteredPairs.length === 0 && (
-                      <div className="px-3 py-2 text-sm text-gray-500">No pairs found</div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+          {/* CENTER: Fixed Toggle */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex bg-gray-900 rounded-md p-0.5 border border-gray-700 shadow-sm z-20">
+            <button
+              onClick={() => setActiveTab('chart')}
+              className={`px-4 py-1.5 rounded text-xs font-bold transition-colors ${
+                activeTab === 'chart' ? 'bg-primary text-darker shadow-sm' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Chart
+            </button>
+            <button
+              onClick={() => setActiveTab('analysis')}
+              className={`px-4 py-1.5 rounded text-xs font-bold transition-colors ${
+                activeTab === 'analysis' ? 'bg-primary text-darker shadow-sm' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Analysis
+            </button>
           </div>
 
-          {activeTab === 'chart' && (
-            <div className="flex items-center gap-2 md:gap-4 flex-wrap">
-              <div className="flex items-center bg-panel border border-gray-700 rounded-md p-0.5 md:p-1">
-                {timeframes.map(tf => (
-                  <button
-                    key={tf}
-                    onClick={() => setTimeframe(tf)}
-                    className={`px-2 py-1 md:px-3 md:py-1 rounded-sm text-xs font-medium transition-colors ${
-                      timeframe === tf ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-200'
-                    }`}
+          {/* RIGHT: Tools (Search, Timeframes, Alerts) */}
+          <div className="flex items-center gap-3 md:gap-4 ml-auto">
+            
+            {activeTab === 'chart' && (
+              <>
+                {/* Global Search Overlay */}
+                <div className="relative z-50 hidden md:block">
+                  <div 
+                    className={`flex items-center bg-gray-900 border ${isSearching ? 'border-primary' : 'border-gray-700'} rounded-md px-3 py-1.5 w-48 transition-colors`}
                   >
-                    {tf}
-                  </button>
-                ))}
-              </div>
+                    <Search className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
+                    <input 
+                      type="text"
+                      placeholder={symbol.replace('_', '/')}
+                      value={searchQuery}
+                      onFocus={() => setIsSearching(true)}
+                      onBlur={() => setTimeout(() => setIsSearching(false), 200)}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-transparent text-sm text-white focus:outline-none w-full font-bold placeholder-white"
+                    />
+                  </div>
 
-              <AlertModal symbol={symbol} />
-            </div>
-          )}
+                  {isSearching && (
+                    <div className="absolute top-full right-0 mt-1 w-full bg-gray-900 border border-gray-700 rounded-md shadow-xl max-h-[250px] overflow-y-auto">
+                      {filteredPairs.map(p => (
+                        <button
+                          key={p}
+                          onMouseDown={() => {
+                            setSymbol(p);
+                            setSearchQuery('');
+                            setIsSearching(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                        >
+                          {p.replace('_', '/')}
+                        </button>
+                      ))}
+                      {filteredPairs.length === 0 && (
+                        <div className="px-3 py-2 text-sm text-gray-500">No pairs found</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Timeframes */}
+                <div className="flex items-center bg-panel border border-gray-700 rounded-md p-0.5 md:p-1">
+                  {timeframes.map(tf => (
+                    <button
+                      key={tf}
+                      onClick={() => setTimeframe(tf)}
+                      className={`px-2 py-1 md:px-3 md:py-1 rounded-sm text-xs font-medium transition-colors ${
+                        timeframe === tf ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-200'
+                      }`}
+                    >
+                      {tf}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Alerts */}
+                <AlertModal symbol={symbol} />
+              </>
+            )}
+          </div>
         </div>
       </header>
 
