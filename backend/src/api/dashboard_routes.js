@@ -5,25 +5,26 @@ module.exports = function(engine) {
   const router = express.Router();
 
   // 1. Retail Sentiment (Mocked for now)
-  router.get('/sentiment/:symbol', (req, res) => {
-    // Generate realistic-looking fake sentiment based on the symbol string length for deterministic pseudo-randomness
-    const symbol = req.params.symbol;
-    const base = (symbol.charCodeAt(0) + symbol.charCodeAt(1)) % 100;
-    
-    // Create a slight oscillation based on current minute
+  router.get('/sentiment', (req, res) => {
+    const pairs = ['EUR_USD', 'GBP_USD', 'USD_JPY', 'AUD_USD', 'USD_CHF', 'USD_CAD', 'NZD_USD'];
     const minute = new Date().getMinutes();
-    let longPercent = (base + minute) % 100;
     
-    // Ensure it's between 20% and 80% to look realistic
-    if (longPercent < 20) longPercent += 20;
-    if (longPercent > 80) longPercent -= 20;
-    
-    const shortPercent = 100 - longPercent;
+    const results = pairs.map(symbol => {
+      const base = (symbol.charCodeAt(0) + symbol.charCodeAt(1)) % 100;
+      let longPercent = (base + minute) % 100;
+      
+      if (longPercent < 20) longPercent += 20;
+      if (longPercent > 80) longPercent -= 20;
+      
+      return {
+        symbol,
+        longPercent: Math.round(longPercent),
+        shortPercent: Math.round(100 - longPercent)
+      };
+    });
 
     res.json({
-      symbol,
-      longPercent: Math.round(longPercent),
-      shortPercent: Math.round(shortPercent),
+      data: results,
       source: "Mock Broker API (Placeholder)"
     });
   });

@@ -218,7 +218,7 @@ export default function App() {
           <CotBadge symbol={symbol} />
           
           <CurrencyHeatmap />
-          <RetailSentiment symbol={symbol} />
+          <RetailSentiment />
           <VolatilityMonitor symbol={symbol} timeframe={timeframe} />
           <SessionVisualizer />
           <EconomicCalendar timezone={timezone} />
