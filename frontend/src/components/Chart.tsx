@@ -100,51 +100,57 @@ export function Chart({ symbol, setSymbol, timeframe, pairs }: ChartProps) {
   }, [symbol, timeframe]);
 
   return (
-    <div className="relative w-full h-full bg-panel rounded-lg overflow-hidden border border-gray-800">
+    <div className="flex flex-col w-full h-full bg-[#0b0e14] rounded-lg overflow-hidden border border-gray-800">
       
-      {/* Search Overlay */}
-      <div className="absolute top-3 left-4 z-50 flex flex-col gap-1">
-        <div 
-          className={`flex items-center bg-gray-900 border ${isSearching ? 'border-primary' : 'border-gray-700'} rounded shadow-lg px-2 py-1.5 w-48 transition-colors`}
-        >
-          <Search className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
-          <input 
-            type="text"
-            placeholder={symbol.replace('_', '/')}
-            value={searchQuery}
-            onFocus={() => setIsSearching(true)}
-            onBlur={() => setTimeout(() => setIsSearching(false), 200)}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-transparent text-sm text-white focus:outline-none w-full font-bold placeholder-white"
-          />
-        </div>
-
-        {isSearching && (
-          <div className="bg-gray-900 border border-gray-700 rounded shadow-xl max-h-[200px] overflow-y-auto">
-            {filteredPairs.map(p => (
-              <button
-                key={p}
-                onMouseDown={() => {
-                  setSymbol(p);
-                  setSearchQuery('');
-                  setIsSearching(false);
-                }}
-                className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
-              >
-                {p.replace('_', '/')}
-              </button>
-            ))}
-            {filteredPairs.length === 0 && (
-              <div className="px-3 py-2 text-sm text-gray-500">No pairs found</div>
-            )}
+      {/* Integrated Search Header */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-800 bg-[#0b0e14] z-10 shrink-0">
+        <div className="relative">
+          <div 
+            className={`flex items-center bg-[#131722] border ${isSearching ? 'border-primary' : 'border-gray-700'} rounded shadow-sm px-2.5 py-1.5 w-56 transition-colors`}
+          >
+            <Search className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
+            <input 
+              type="text"
+              placeholder={symbol.replace('_', '/')}
+              value={searchQuery}
+              onFocus={() => setIsSearching(true)}
+              onBlur={() => setTimeout(() => setIsSearching(false), 200)}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-transparent text-sm text-white focus:outline-none w-full font-bold placeholder-white"
+            />
           </div>
-        )}
+
+          {isSearching && (
+            <div className="absolute top-full left-0 mt-1 w-full bg-[#131722] border border-gray-700 rounded shadow-xl max-h-[250px] overflow-y-auto z-50">
+              {filteredPairs.map(p => (
+                <button
+                  key={p}
+                  onMouseDown={() => {
+                    setSymbol(p);
+                    setSearchQuery('');
+                    setIsSearching(false);
+                  }}
+                  className="w-full text-left px-3 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                >
+                  {p.replace('_', '/')}
+                </button>
+              ))}
+              {filteredPairs.length === 0 && (
+                <div className="px-3 py-2.5 text-sm text-gray-500">No pairs found</div>
+              )}
+            </div>
+          )}
+        </div>
+        
+        {/* We can add other chart-specific tools here in the future */}
+        <div className="text-xs text-gray-500 font-medium">MairaFX AI Charting</div>
       </div>
 
+      {/* TradingView Widget Container */}
       <div
         id="tradingview-widget"
         ref={containerRef}
-        className="w-full h-full"
+        className="flex-1 w-full relative"
       />
     </div>
   );
