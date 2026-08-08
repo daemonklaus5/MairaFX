@@ -173,10 +173,14 @@ export default function App() {
 
 
         {/* --- ANALYSIS TAB --- */}
-        <div className={`w-full lg:flex-1 h-[200px] lg:h-auto flex-col items-center justify-center p-8 ${activeTab === 'analysis' ? 'flex' : 'hidden'}`}>
-          <div className="text-center opacity-30">
-            <h2 className="text-2xl font-bold tracking-widest">ANALYSIS TOOLS</h2>
-            <p className="mt-2 text-sm uppercase tracking-widest">Coming Soon</p>
+        <div className={`w-full lg:flex-1 h-full flex-col p-4 md:p-6 overflow-y-auto bg-darker ${activeTab === 'analysis' ? 'flex' : 'hidden'}`}>
+          <div className="max-w-3xl w-full">
+            <div className="bg-panel rounded-lg border border-gray-800 p-4 shadow-lg">
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
+                Rule-Based Lanes
+              </h2>
+              <LanePanel data={laneData} />
+            </div>
           </div>
         </div>
 
@@ -186,12 +190,6 @@ export default function App() {
         >
           {/* COT Badge moved to the top of Analysis pane */}
           <CotBadge symbol={symbol} />
-          <div className="bg-panel rounded-lg border border-gray-800 p-3">
-            <h2 className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 mb-2.5">
-              Rule-Based Lanes
-            </h2>
-            <LanePanel data={laneData} />
-          </div>
           <KeyDriversPanel symbol={symbol} />
         </div>
 
