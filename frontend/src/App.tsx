@@ -76,23 +76,25 @@ export default function App() {
             </button>
           </div>
 
-          <div className="flex items-center gap-2 md:gap-4 flex-wrap">
-            <div className="flex items-center bg-panel border border-gray-700 rounded-md p-0.5 md:p-1">
-              {timeframes.map(tf => (
-                <button
-                  key={tf}
-                  onClick={() => setTimeframe(tf)}
-                  className={`px-2 py-1 md:px-3 md:py-1 rounded-sm text-xs font-medium transition-colors ${
-                    timeframe === tf ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-200'
-                  }`}
-                >
-                  {tf}
-                </button>
-              ))}
-            </div>
+          {activeTab === 'chart' && (
+            <div className="flex items-center gap-2 md:gap-4 flex-wrap">
+              <div className="flex items-center bg-panel border border-gray-700 rounded-md p-0.5 md:p-1">
+                {timeframes.map(tf => (
+                  <button
+                    key={tf}
+                    onClick={() => setTimeframe(tf)}
+                    className={`px-2 py-1 md:px-3 md:py-1 rounded-sm text-xs font-medium transition-colors ${
+                      timeframe === tf ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-200'
+                    }`}
+                  >
+                    {tf}
+                  </button>
+                ))}
+              </div>
 
-            <AlertModal symbol={symbol} />
-          </div>
+              <AlertModal symbol={symbol} />
+            </div>
+          )}
         </div>
       </header>
 
