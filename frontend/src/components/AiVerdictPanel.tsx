@@ -71,6 +71,9 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
   const [mode, setMode]       = useState<'strict' | 'aggressive'>('strict');
+  
+  // Track what the current data is actually for
+  const [analyzedContext, setAnalyzedContext] = useState<{symbol: string, timeframe: string} | null>(null);
 
   const handleAnalyze = async () => {
     setLoading(true);
@@ -89,6 +92,7 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
       }
       const json: AiResult = await res.json();
       setData(json);
+      setAnalyzedContext({ symbol, timeframe });
       if (json.lanes) onAnalyzed(json.lanes);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Analysis failed. Check your connection.';
@@ -96,6 +100,8 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
     }
     setLoading(false);
   };
+
+  const isStale = analyzedContext && (analyzedContext.symbol !== symbol || analyzedContext.timeframe !== timeframe);
 
   return (
     <div className="bg-panel rounded-lg border border-gray-800 overflow-hidden">
@@ -105,8 +111,15 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
         <div className="flex items-center gap-2">
           <Brain className="w-4 h-4 text-primary shrink-0" />
           <div>
-            <h3 className="text-xs font-semibold text-white leading-tight">AI Read</h3>
-            <p className="text-[10px] text-gray-500 leading-tight">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h3 className="text-xs font-semibold text-white leading-tight">AI Read</h3>
+              {analyzedContext && !loading && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold ${isStale ? 'bg-orange-500/20 text-orange-400' : 'bg-gray-800 text-gray-300'}`}>
+                  {analyzedContext.symbol.replace('_', '/')} {analyzedContext.timeframe}
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] text-gray-500 leading-tight mt-0.5">
               {data && !loading
                 ? data.cached ? 'Cached result' : data.fallback ? 'Rule-based fallback' : 'Gemini 2.0 · ICT methodology'
                 : 'Direction, conviction & trade setup'}
@@ -122,11 +135,13 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
             className={`flex items-center justify-center gap-1.5 px-3 py-1.5 w-full rounded-md text-xs font-bold transition-all ${
               loading
                 ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                : 'bg-primary hover:bg-emerald-400 text-darker shadow-[0_0_12px_rgba(0,209,178,0.25)] hover:shadow-[0_0_22px_rgba(0,209,178,0.45)]'
+                : isStale
+                  ? 'bg-orange-500 hover:bg-orange-400 text-darker shadow-[0_0_12px_rgba(249,115,22,0.25)] hover:shadow-[0_0_22px_rgba(249,115,22,0.45)]'
+                  : 'bg-primary hover:bg-emerald-400 text-darker shadow-[0_0_12px_rgba(0,209,178,0.25)] hover:shadow-[0_0_22px_rgba(0,209,178,0.45)]'
             }`}
           >
             <Sparkles className="w-3 h-3" />
-            {loading ? 'Analyzing…' : data ? 'Re-Analyze' : 'Analyze'}
+            {loading ? 'Analyzing…' : isStale ? 'Update Analysis' : data ? 'Re-Analyze' : 'Analyze'}
           </button>
 
           <div className="flex bg-gray-900 rounded-md p-0.5 border border-gray-800 w-full">
