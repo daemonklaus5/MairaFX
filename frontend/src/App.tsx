@@ -165,12 +165,6 @@ export default function App() {
           style={{ scrollbarGutter: 'stable' }}
         >
           <AiVerdictPanel symbol={symbol} timeframe={timeframe} onAnalyzed={handleAnalyzed} />
-          <div className="bg-panel rounded-lg border border-gray-800 p-3">
-            <h2 className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 mb-2.5">
-              Rule-Based Lanes
-            </h2>
-            <LanePanel data={laneData} />
-          </div>
         </div>
 
 
@@ -188,6 +182,12 @@ export default function App() {
         >
           {/* COT Badge moved to the top of Analysis pane */}
           <CotBadge symbol={symbol} />
+          <div className="bg-panel rounded-lg border border-gray-800 p-3">
+            <h2 className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 mb-2.5">
+              Rule-Based Lanes
+            </h2>
+            <LanePanel data={laneData} />
+          </div>
           <KeyDriversPanel symbol={symbol} />
         </div>
 
