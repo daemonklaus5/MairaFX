@@ -36,9 +36,9 @@ class FinnhubClient {
   async backfillAll() {
     // We map our timeframes to Yahoo Finance intervals
     const resolutionMap = {
-      'M15': '15m',
-      'H1': '60m',
-      'D': '1d'
+      '15m': '15m',
+      '1H': '60m',
+      '1D': '1d'
     };
 
     const to = new Date();
