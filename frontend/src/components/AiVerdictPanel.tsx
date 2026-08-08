@@ -224,6 +224,14 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
             )}
           </div>
 
+          {/* Fallback Reasoning */}
+          {data.fallback && data.reasoning && (
+            <div className="bg-orange-500/10 border border-orange-500/20 rounded-md p-3 text-orange-200 text-xs">
+              <span className="font-bold uppercase tracking-wider block mb-1">Fallback Mode</span>
+              {data.reasoning}
+            </div>
+          )}
+
           {/* Overview */}
           {data.overview && (
             <div className="bg-darker border border-gray-800 rounded-md p-2.5">
