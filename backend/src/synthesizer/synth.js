@@ -165,8 +165,8 @@ class Synthesizer {
   /**
    * Call Gemini with the full ICT context and return an institutional-grade narrative.
    */
-  async getAiNarrative(symbol, snapshot, zones, mtfZones, econCalendar, mode = 'strict') {
-    const cacheKey = `${symbol}_narrative_${mode}`;
+  async getAiNarrative(symbol, timeframe, snapshot, zones, mtfZones, econCalendar, mode = 'strict') {
+    const cacheKey = `${symbol}_${timeframe}_narrative_${mode}`;
     const cached   = this.cache.get(cacheKey);
     const now      = Date.now();
 

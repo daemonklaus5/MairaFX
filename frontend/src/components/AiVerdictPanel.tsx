@@ -83,7 +83,7 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
   const [mode, setMode]       = useState<'strict' | 'aggressive'>('strict');
   
   // Track what the current data is actually for
-  const [analyzedContext, setAnalyzedContext] = useState<{symbol: string, timeframe: string} | null>(null);
+  const [analyzedContext, setAnalyzedContext] = useState<{symbol: string, timeframe: string, mode: string} | null>(null);
 
   const handleAnalyze = async () => {
     setLoading(true);
@@ -102,7 +102,7 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
       }
       const json: AiResult = await res.json();
       setData(json);
-      setAnalyzedContext({ symbol, timeframe });
+      setAnalyzedContext({ symbol, timeframe, mode });
       if (json.lanes) onAnalyzed(json.lanes);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Analysis failed. Check your connection.';
@@ -111,7 +111,7 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
     setLoading(false);
   };
 
-  const isStale = analyzedContext && (analyzedContext.symbol !== symbol || analyzedContext.timeframe !== timeframe);
+  const isStale = analyzedContext && (analyzedContext.symbol !== symbol || analyzedContext.timeframe !== timeframe || analyzedContext.mode !== mode);
 
   return (
     <div className="bg-panel rounded-lg border border-gray-800 overflow-hidden">
@@ -125,7 +125,7 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
               <h3 className="text-xs font-semibold text-white leading-tight">AI Read</h3>
               {analyzedContext && !loading && (
                 <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold ${isStale ? 'bg-orange-500/20 text-orange-400' : 'bg-gray-800 text-gray-300'}`}>
-                  {analyzedContext.symbol.replace('_', '/')} {analyzedContext.timeframe}
+                  {analyzedContext.symbol.replace('_', '/')} {analyzedContext.timeframe} {analyzedContext.mode === 'aggressive' ? '🔥' : ''}
                 </span>
               )}
             </div>

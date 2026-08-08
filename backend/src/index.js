@@ -239,7 +239,7 @@ async function bootstrap() {
 
       const mode = req.query.mode || 'strict';
       const snapshot = await synth.evaluateRuleBased(symbol, timeframe, price, zones);
-      const aiResult = await synth.getAiNarrative(symbol, snapshot, zones, mtfZones, econCalendar, mode);
+      const aiResult = await synth.getAiNarrative(symbol, timeframe, snapshot, zones, mtfZones, econCalendar, mode);
 
       res.json(aiResult);
     } catch (err) {
