@@ -198,21 +198,22 @@ Output ONLY strict JSON with EXACTLY these keys:
 {
   "verdict": "WAIT" | "LONG" | "SHORT",
   "confidence": "Low" | "Medium" | "High",
-  "market_structure_read": "<Current trend/range state, last confirmed BOS or CHoCH, key swing highs/lows in play — 2-3 sentences>",
-  "liquidity_context": "<Where resting liquidity likely sits (equal highs/lows, prior session highs/lows), whether recent PA looks like a sweep, accumulation, or manipulation phase — 2-3 sentences>",
-  "session_timing": "<Which session is active, whether this aligns with typical institutional activity windows for this pair — 1-2 sentences>",
-  "confluence_check": "<How the indicator data (RSI, BB, VWAP, MTF) either supports or contradicts the structural read. Explicitly flag any disagreement between structure and indicators — 2-3 sentences>",
-  "thesis": "<Directional bias with confidence level and the full reasoning chain behind it — 3-4 sentences>",
+  "market_structure_read": "<Current trend/range state, last confirmed BOS or CHoCH, key swing highs/lows in play. MUST include exact prices for structure levels — 2-3 sentences>",
+  "liquidity_context": "<Where resting liquidity likely sits (equal highs/lows, prior session highs/lows), whether recent PA looks like a sweep, accumulation, or manipulation phase. MUST cite exact prices and pip distances from the data — 2-3 sentences>",
+  "session_timing": "<Which session is active, whether this aligns with typical institutional activity windows for this pair. MUST cite the specific hours or session name from the data — 1-2 sentences>",
+  "confluence_check": "<How the indicator data (RSI, BB, VWAP, MTF) either supports or contradicts the structural read. Explicitly flag any disagreement. MUST cite the exact indicator values/scores from the data — 2-3 sentences>",
+  "thesis": "<Directional bias with confidence level and the full reasoning chain behind it. MUST cite exact target prices and invalidation prices — 3-4 sentences>",
   "setup": "<Specific ICT entry model or IF/THEN pending scenario if WAIT — must never be null or empty>",
   "watch_zone": "<Exact price level or zone to watch for entry>",
   "invalidation": ["<exact price level or condition that breaks this thesis>", "<second invalidation>"],
   "weakest_point": "<One line on the weakest part of this read — what you are least confident about>",
-  "overview": "<Summarize what you believe is happening right now and what could potentially happen in the near future — 3-4 sentences>",
+  "overview": "<Summarize what you believe is happening right now and what could potentially happen in the near future. MUST cite key price levels and current price — 3-4 sentences>",
   "overview_confidence_score": <integer 0-100 representing your confidence in the directional assumption>,
   "risk_sizing": "<e.g. 'Risk 35 pips (1% = 0.28 Lots per $10k)' or N/A if WAIT>"
 }
 
 Additional rules:
+- MANDATORY NUMERICAL CITATIONS: Every single prose section (market_structure_read, liquidity_context, session_timing, confluence_check, thesis, overview) MUST explicitly cite actual numbers (exact prices, RSI values, pip distances, hours, score values, etc.) provided in the Market Data Input. Vague qualitative statements without numerical backing are strictly forbidden.
 - ECONOMIC CALENDAR: If high-impact news is imminent, default to WAIT unless setup is pristine.
 - KILL ZONES: Entries are highest probability during London or NY Killzones. Flag Asian Range breakouts as low-probability.
 - VOLUME POC: Price is drawn to the Point of Control — use as magnet target or S/R.
