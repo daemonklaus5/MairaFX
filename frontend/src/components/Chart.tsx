@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 interface ChartProps {
   symbol: string;
   timeframe: string;
+  timezone: 'UTC' | 'IST';
 }
 
 // Map our internal symbols to TradingView's OANDA format
@@ -23,7 +24,7 @@ function toTvInterval(timeframe: string): string {
   return map[timeframe] || '15';
 }
 
-export function Chart({ symbol, timeframe }: ChartProps) {
+export function Chart({ symbol, timeframe, timezone }: ChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetRef = useRef<any>(null);
 
@@ -43,7 +44,7 @@ export function Chart({ symbol, timeframe }: ChartProps) {
         autosize: true,
         symbol: toTvSymbol(symbol),
         interval: toTvInterval(timeframe),
-        timezone: 'Etc/UTC',
+        timezone: timezone === 'IST' ? 'Asia/Kolkata' : 'Etc/UTC',
         theme: 'dark',
         style: '1', 
         locale: 'en',
@@ -84,7 +85,7 @@ export function Chart({ symbol, timeframe }: ChartProps) {
         containerRef.current.innerHTML = '';
       }
     };
-  }, [symbol, timeframe]);
+  }, [symbol, timeframe, timezone]);
 
   return (
     <div className="relative w-full h-full bg-panel rounded-lg overflow-hidden border border-gray-800">

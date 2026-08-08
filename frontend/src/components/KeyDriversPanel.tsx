@@ -23,7 +23,7 @@ function timeAgo(unix: number): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-export function KeyDriversPanel({ symbol }: { symbol: string }) {
+export function KeyDriversPanel({ symbol, timezone }: { symbol: string; timezone: 'UTC' | 'IST' }) {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);

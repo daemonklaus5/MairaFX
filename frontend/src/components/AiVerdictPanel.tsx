@@ -61,6 +61,7 @@ interface AiResult {
 interface Props {
   symbol: string;
   timeframe: string;
+  timezone: 'UTC' | 'IST';
   onAnalyzed: (lanes: AiResult['lanes']) => void;
 }
 
@@ -76,7 +77,7 @@ const verdictIcon: Record<string, ReactElement> = {
   WAIT:  <span className="text-base">⏸</span>,
 };
 
-export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
+export function AiVerdictPanel({ symbol, timeframe, timezone, onAnalyzed }: Props) {
   const [data, setData]       = useState<AiResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
@@ -408,7 +409,7 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
               </span>
               <div className="text-[10px] text-gray-300">
                 {data.news.map((n, i) => (
-                  <div key={i} className="truncate">• {n.event} ({new Date(n.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})</div>
+                  <div key={i} className="truncate">• {n.event} ({new Date(n.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: timezone === 'IST' ? 'Asia/Kolkata' : 'UTC'})})</div>
                 ))}
               </div>
             </div>

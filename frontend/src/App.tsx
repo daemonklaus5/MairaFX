@@ -28,6 +28,7 @@ export default function App() {
   const [timeframe, setTimeframe] = useState('15m');
   const [laneData, setLaneData] = useState<LanesState | null>(null);
   const [activeTab, setActiveTab] = useState<'chart' | 'analysis'>('chart');
+  const [timezone, setTimezone] = useState<'UTC' | 'IST'>('UTC');
 
   // Search state
   const [isSearching, setIsSearching] = useState(false);
@@ -92,6 +93,26 @@ export default function App() {
           {/* RIGHT: Tools (Search, Timeframes, Alerts) */}
           <div className="flex items-center gap-3 md:gap-4 ml-auto">
             
+            {/* Timezone Toggle */}
+            <div className="flex bg-gray-900 rounded-md p-0.5 border border-gray-800 hidden md:flex">
+              <button
+                onClick={() => setTimezone('UTC')}
+                className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${
+                  timezone === 'UTC' ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                UTC
+              </button>
+              <button
+                onClick={() => setTimezone('IST')}
+                className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${
+                  timezone === 'IST' ? 'bg-primary/20 text-primary' : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                IST
+              </button>
+            </div>
+
             {activeTab === 'chart' && (
               <>
                 {/* Global Search Overlay */}
@@ -161,14 +182,14 @@ export default function App() {
         
         {/* --- CHART TAB --- */}
         <div className={`w-full lg:flex-1 h-[400px] lg:h-auto lg:overflow-hidden p-3 md:p-4 shrink-0 ${activeTab === 'chart' ? 'block' : 'hidden'}`}>
-          <Chart symbol={symbol} timeframe={timeframe} />
+          <Chart symbol={symbol} timeframe={timeframe} timezone={timezone} />
         </div>
 
         <div
           className={`w-full lg:w-[300px] xl:w-[320px] shrink-0 lg:overflow-y-auto lg:border-l border-t lg:border-t-0 border-gray-800 p-3 space-y-3 text-sm bg-darker/50 ${activeTab === 'chart' ? 'block' : 'hidden'}`}
           style={{ scrollbarGutter: 'stable' }}
         >
-          <AiVerdictPanel symbol={symbol} timeframe={timeframe} onAnalyzed={handleAnalyzed} />
+          <AiVerdictPanel symbol={symbol} timeframe={timeframe} timezone={timezone} onAnalyzed={handleAnalyzed} />
         </div>
 
 
@@ -190,7 +211,7 @@ export default function App() {
         >
           {/* COT Badge moved to the top of Analysis pane */}
           <CotBadge symbol={symbol} />
-          <KeyDriversPanel symbol={symbol} />
+          <KeyDriversPanel symbol={symbol} timezone={timezone} />
         </div>
 
       </div>
