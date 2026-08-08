@@ -1,11 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
-import { Search } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 
 interface ChartProps {
   symbol: string;
-  setSymbol: (symbol: string) => void;
   timeframe: string;
-  pairs: string[];
 }
 
 // Map our internal symbols to TradingView's OANDA format
@@ -26,19 +23,9 @@ function toTvInterval(timeframe: string): string {
   return map[timeframe] || '15';
 }
 
-export function Chart({ symbol, setSymbol, timeframe, pairs }: ChartProps) {
+export function Chart({ symbol, timeframe }: ChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetRef = useRef<any>(null);
-  
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  // Optional: add more standard pairs to search list if desired, or just use core pairs
-  const extendedPairs = [...new Set([...pairs, 'USD_CAD', 'USD_CHF', 'NZD_USD', 'EUR_GBP', 'EUR_JPY', 'GBP_JPY', 'AUD_JPY'])];
-  
-  const filteredPairs = extendedPairs.filter(p => 
-    p.replace('_', '').toLowerCase().includes(searchQuery.replace('_', '').toLowerCase())
-  );
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -100,57 +87,11 @@ export function Chart({ symbol, setSymbol, timeframe, pairs }: ChartProps) {
   }, [symbol, timeframe]);
 
   return (
-    <div className="flex flex-col w-full h-full bg-[#0b0e14] rounded-lg overflow-hidden border border-gray-800">
-      
-      {/* Integrated Search Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-800 bg-[#0b0e14] z-10 shrink-0">
-        <div className="relative">
-          <div 
-            className={`flex items-center bg-[#131722] border ${isSearching ? 'border-primary' : 'border-gray-700'} rounded shadow-sm px-2.5 py-1.5 w-56 transition-colors`}
-          >
-            <Search className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
-            <input 
-              type="text"
-              placeholder={symbol.replace('_', '/')}
-              value={searchQuery}
-              onFocus={() => setIsSearching(true)}
-              onBlur={() => setTimeout(() => setIsSearching(false), 200)}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent text-sm text-white focus:outline-none w-full font-bold placeholder-white"
-            />
-          </div>
-
-          {isSearching && (
-            <div className="absolute top-full left-0 mt-1 w-full bg-[#131722] border border-gray-700 rounded shadow-xl max-h-[250px] overflow-y-auto z-50">
-              {filteredPairs.map(p => (
-                <button
-                  key={p}
-                  onMouseDown={() => {
-                    setSymbol(p);
-                    setSearchQuery('');
-                    setIsSearching(false);
-                  }}
-                  className="w-full text-left px-3 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
-                >
-                  {p.replace('_', '/')}
-                </button>
-              ))}
-              {filteredPairs.length === 0 && (
-                <div className="px-3 py-2.5 text-sm text-gray-500">No pairs found</div>
-              )}
-            </div>
-          )}
-        </div>
-        
-        {/* We can add other chart-specific tools here in the future */}
-        <div className="text-xs text-gray-500 font-medium">MairaFX AI Charting</div>
-      </div>
-
-      {/* TradingView Widget Container */}
+    <div className="relative w-full h-full bg-panel rounded-lg overflow-hidden border border-gray-800">
       <div
         id="tradingview-widget"
         ref={containerRef}
-        className="flex-1 w-full relative"
+        className="w-full h-full"
       />
     </div>
   );

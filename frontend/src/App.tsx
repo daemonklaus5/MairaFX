@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Search } from 'lucide-react';
 import { Chart } from './components/Chart';
 import { AiVerdictPanel } from './components/AiVerdictPanel';
 import { LanePanel } from './components/LanePanel';
@@ -28,8 +29,18 @@ export default function App() {
   const [laneData, setLaneData] = useState<LanesState | null>(null);
   const [activeTab, setActiveTab] = useState<'chart' | 'analysis'>('chart');
 
-  // We can expand this list later, but for now stick to the core 4
-  const pairs = ['EUR_USD', 'GBP_USD', 'USD_JPY', 'AUD_USD'];
+  // Search state
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // We can expand this list later, but for now stick to the core 4 + a few extended pairs
+  const basePairs = ['EUR_USD', 'GBP_USD', 'USD_JPY', 'AUD_USD'];
+  const extendedPairs = [...new Set([...basePairs, 'USD_CAD', 'USD_CHF', 'NZD_USD', 'EUR_GBP', 'EUR_JPY', 'GBP_JPY', 'AUD_JPY'])];
+  
+  const filteredPairs = extendedPairs.filter(p => 
+    p.replace('_', '').toLowerCase().includes(searchQuery.replace('_', '').toLowerCase())
+  );
+
   const timeframes = ['1m', '5m', '15m', '1H', '4H', '1D'];
 
   useEffect(() => {
@@ -56,24 +67,67 @@ export default function App() {
             </h1>
           </div>
 
-          {/* 2-Button Toggle */}
-          <div className="flex bg-gray-900 rounded-md p-0.5 border border-gray-700">
-            <button
-              onClick={() => setActiveTab('chart')}
-              className={`px-4 py-1.5 rounded text-xs font-bold transition-colors ${
-                activeTab === 'chart' ? 'bg-primary text-darker shadow-sm' : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              Chart
-            </button>
-            <button
-              onClick={() => setActiveTab('analysis')}
-              className={`px-4 py-1.5 rounded text-xs font-bold transition-colors ${
-                activeTab === 'analysis' ? 'bg-primary text-darker shadow-sm' : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              Analysis
-            </button>
+          <div className="flex items-center gap-4">
+            {/* 2-Button Toggle */}
+            <div className="flex bg-gray-900 rounded-md p-0.5 border border-gray-700">
+              <button
+                onClick={() => setActiveTab('chart')}
+                className={`px-4 py-1.5 rounded text-xs font-bold transition-colors ${
+                  activeTab === 'chart' ? 'bg-primary text-darker shadow-sm' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Chart
+              </button>
+              <button
+                onClick={() => setActiveTab('analysis')}
+                className={`px-4 py-1.5 rounded text-xs font-bold transition-colors ${
+                  activeTab === 'analysis' ? 'bg-primary text-darker shadow-sm' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Analysis
+              </button>
+            </div>
+
+            {/* Global Search Overlay (only on chart tab) */}
+            {activeTab === 'chart' && (
+              <div className="relative z-50 hidden md:block">
+                <div 
+                  className={`flex items-center bg-gray-900 border ${isSearching ? 'border-primary' : 'border-gray-700'} rounded-md px-3 py-1.5 w-48 transition-colors`}
+                >
+                  <Search className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
+                  <input 
+                    type="text"
+                    placeholder={symbol.replace('_', '/')}
+                    value={searchQuery}
+                    onFocus={() => setIsSearching(true)}
+                    onBlur={() => setTimeout(() => setIsSearching(false), 200)}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="bg-transparent text-sm text-white focus:outline-none w-full font-bold placeholder-white"
+                  />
+                </div>
+
+                {isSearching && (
+                  <div className="absolute top-full left-0 mt-1 w-full bg-gray-900 border border-gray-700 rounded-md shadow-xl max-h-[250px] overflow-y-auto">
+                    {filteredPairs.map(p => (
+                      <button
+                        key={p}
+                        onMouseDown={() => {
+                          setSymbol(p);
+                          setSearchQuery('');
+                          setIsSearching(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                      >
+                        {p.replace('_', '/')}
+                      </button>
+                    ))}
+                    {filteredPairs.length === 0 && (
+                      <div className="px-3 py-2 text-sm text-gray-500">No pairs found</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {activeTab === 'chart' && (
@@ -103,8 +157,7 @@ export default function App() {
         
         {/* --- CHART TAB --- */}
         <div className={`w-full lg:flex-1 h-[400px] lg:h-auto lg:overflow-hidden p-3 md:p-4 shrink-0 ${activeTab === 'chart' ? 'block' : 'hidden'}`}>
-          {/* We pass setSymbol and pairs down to Chart for the custom search overlay */}
-          <Chart symbol={symbol} setSymbol={setSymbol} timeframe={timeframe} pairs={pairs} />
+          <Chart symbol={symbol} timeframe={timeframe} />
         </div>
 
         <div
