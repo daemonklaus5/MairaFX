@@ -17,13 +17,23 @@ interface LiquidityLevel {
 
 interface AiResult {
   verdict: 'WAIT' | 'LONG' | 'SHORT';
-  confidence: 'high' | 'moderate' | 'low';
+  confidence: 'high' | 'moderate' | 'low' | 'Low' | 'Medium' | 'High';
   lanes: {
     technical: LaneData;
     flow: LaneData;
     narrative: LaneData;
     macro: LaneData;
   };
+  // 8-section structured fields
+  market_structure_read?: string | null;
+  liquidity_context?: string | null;
+  session_timing?: string | null;
+  confluence_check?: string | null;
+  thesis?: string | null;
+  weakest_point?: string | null;
+  overview?: string | null;
+  overview_confidence_score?: number | null;
+  // Legacy/fallback
   reasoning: string;
   setup: string | null;
   watch_zone: string;
@@ -197,32 +207,141 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
       {data && !loading && (
         <div className="p-3 space-y-3">
 
-          {/* Verdict badge */}
+          {/* Verdict + Confidence badge */}
           <div className={`p-3 rounded-md border flex items-center gap-3 ${verdictStyle[data.verdict] || verdictStyle.WAIT}`}>
             <div>{verdictIcon[data.verdict]}</div>
-            <div>
+            <div className="flex-1">
               <div className="text-lg font-bold leading-tight">{data.verdict}</div>
               <div className="text-[10px] opacity-60 uppercase tracking-wider">{data.confidence} conviction</div>
             </div>
+            {data.overview_confidence_score != null && (
+              <div className="flex flex-col items-center shrink-0">
+                <div className={`text-2xl font-black tabular-nums ${data.overview_confidence_score >= 70 ? 'text-primary' : data.overview_confidence_score >= 45 ? 'text-orange-400' : 'text-gray-500'}`}>
+                  {data.overview_confidence_score}
+                </div>
+                <div className="text-[9px] text-gray-500 uppercase tracking-widest">/ 100</div>
+              </div>
+            )}
           </div>
 
-          {/* ICT Setup — the specific trade model */}
+          {/* Overview */}
+          {data.overview && (
+            <div className="bg-darker border border-gray-800 rounded-md p-2.5">
+              <div className="text-[9px] text-primary uppercase tracking-widest font-bold mb-1.5">Overview</div>
+              <p className="text-[11px] text-gray-200 leading-relaxed">{data.overview}</p>
+            </div>
+          )}
+
+          {/* Divider */}
+          {(data.market_structure_read || data.liquidity_context || data.session_timing || data.confluence_check || data.thesis) && (
+            <div className="border-t border-gray-800/70 pt-1">
+              <p className="text-[9px] text-gray-600 uppercase tracking-widest font-semibold mb-2">Structured Breakdown</p>
+              <div className="space-y-2">
+
+                {/* 1. Market Structure Read */}
+                {data.market_structure_read && (
+                  <div className="bg-gray-900/60 border border-gray-800 rounded-md p-2.5">
+                    <div className="text-[9px] text-blue-400 uppercase tracking-widest font-bold mb-1">1. Market Structure Read</div>
+                    <p className="text-[11px] text-gray-300 leading-relaxed">{data.market_structure_read}</p>
+                  </div>
+                )}
+
+                {/* 2. Liquidity Context */}
+                {data.liquidity_context && (
+                  <div className="bg-gray-900/60 border border-gray-800 rounded-md p-2.5">
+                    <div className="text-[9px] text-cyan-400 uppercase tracking-widest font-bold mb-1">2. Liquidity Context</div>
+                    <p className="text-[11px] text-gray-300 leading-relaxed">{data.liquidity_context}</p>
+                  </div>
+                )}
+
+                {/* 3. Session / Timing */}
+                {data.session_timing && (
+                  <div className="bg-gray-900/60 border border-gray-800 rounded-md p-2.5">
+                    <div className="text-[9px] text-yellow-400 uppercase tracking-widest font-bold mb-1">3. Session / Timing</div>
+                    <p className="text-[11px] text-gray-300 leading-relaxed">{data.session_timing}</p>
+                  </div>
+                )}
+
+                {/* 4. Confluence Check */}
+                {data.confluence_check && (
+                  <div className="bg-gray-900/60 border border-gray-800 rounded-md p-2.5">
+                    <div className="text-[9px] text-violet-400 uppercase tracking-widest font-bold mb-1">4. Confluence Check</div>
+                    <p className="text-[11px] text-gray-300 leading-relaxed">{data.confluence_check}</p>
+                  </div>
+                )}
+
+                {/* 5. Thesis */}
+                {data.thesis && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-md p-2.5">
+                    <div className="text-[9px] text-primary uppercase tracking-widest font-bold mb-1 flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" /> 5. Thesis
+                    </div>
+                    <p className="text-[11px] text-gray-200 leading-relaxed">{data.thesis}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ICT Setup */}
           {data.setup && data.setup !== 'No valid ICT entry model present' && (
-            <div className="bg-primary/5 border border-primary/20 rounded-md p-2.5">
-              <div className="text-[10px] text-primary uppercase tracking-widest font-semibold mb-1 flex items-center gap-1">
-                <Layers className="w-3 h-3" /> Setup
+            <div className="bg-gray-800/40 border border-gray-700 rounded-md p-2.5">
+              <div className="text-[9px] text-gray-400 uppercase tracking-widest font-bold mb-1 flex items-center gap-1">
+                <Layers className="w-3 h-3" /> 6. Setup / Entry Model
               </div>
               <p className="text-[11px] text-gray-200 leading-snug">{data.setup}</p>
             </div>
           )}
 
-          {/* AI Reasoning */}
-          <div className="bg-darker rounded-md p-2.5 text-[11px] text-gray-300 leading-relaxed border border-gray-800">
-            {data.reasoning}
+          {/* Watch Zone + Invalidation */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-gray-800/30 border border-gray-800 rounded-md p-2">
+              <div className="flex items-center gap-1 mb-1">
+                <Target className="w-3 h-3 text-blue-400 shrink-0" />
+                <span className="text-[9px] text-gray-500 uppercase tracking-wider">Watch Zone</span>
+              </div>
+              <span className="text-[11px] text-gray-200">{data.watch_zone}</span>
+            </div>
+            {data.invalidation?.length > 0 && (
+              <div className="bg-gray-800/30 border border-gray-800 rounded-md p-2">
+                <div className="flex items-center gap-1 mb-1">
+                  <AlertTriangle className="w-3 h-3 text-orange-400 shrink-0" />
+                  <span className="text-[9px] text-gray-500 uppercase tracking-wider">7. Invalidation</span>
+                </div>
+                <ul className="text-[11px] text-gray-200 space-y-0.5">
+                  {data.invalidation.map((inv, i) => <li key={i}>• {inv}</li>)}
+                </ul>
+              </div>
+            )}
           </div>
 
-          {/* Institutional Metrics (MTF, POC, Session) */}
-          <div className="grid grid-cols-2 gap-2 mt-2">
+          {/* Weakest Point */}
+          {data.weakest_point && (
+            <div className="flex items-start gap-2 bg-orange-400/5 border border-orange-400/15 rounded-md p-2.5">
+              <AlertTriangle className="w-3.5 h-3.5 text-orange-400 mt-0.5 shrink-0" />
+              <div>
+                <span className="text-[9px] text-orange-400 uppercase tracking-widest font-bold block mb-0.5">7b. Weakest Point</span>
+                <span className="text-[11px] text-gray-300">{data.weakest_point}</span>
+              </div>
+            </div>
+          )}
+
+          {/* MTF Alignment */}
+          {data.mtf && (
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-gray-800/20 border border-gray-800 rounded-md p-2">
+                <span className="text-[9px] text-gray-500 uppercase tracking-widest block mb-0.5">1D Trend</span>
+                <span className={`text-[10px] font-medium capitalize ${data.mtf.daily_trend === 'bullish' ? 'text-bull' : data.mtf.daily_trend === 'bearish' ? 'text-bear' : 'text-gray-400'}`}>{data.mtf.daily_trend}</span>
+              </div>
+              <div className="bg-gray-800/20 border border-gray-800 rounded-md p-2">
+                <span className="text-[9px] text-gray-500 uppercase tracking-widest block mb-0.5">4H Trend</span>
+                <span className={`text-[10px] font-medium capitalize ${data.mtf.h4_trend === 'bullish' ? 'text-bull' : data.mtf.h4_trend === 'bearish' ? 'text-bear' : 'text-gray-400'}`}>{data.mtf.h4_trend}</span>
+              </div>
+            </div>
+          )}
+
+          {/* POC + Session */}
+          <div className="grid grid-cols-2 gap-2">
             <div className="bg-gray-800/20 border border-gray-800 rounded-md p-2">
               <span className="text-[9px] text-gray-500 uppercase tracking-widest block mb-0.5">Session</span>
               <span className="text-[10px] text-gray-300 font-medium">{data.session || 'Unknown'}</span>
@@ -233,38 +352,13 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
                 <span className="text-[10px] text-gray-300 font-mono">{data.poc}</span>
               </div>
             )}
-            {data.mtf && (
-              <div className="bg-gray-800/20 border border-gray-800 rounded-md p-2 col-span-2 flex justify-between">
-                <div>
-                  <span className="text-[9px] text-gray-500 uppercase tracking-widest block mb-0.5">1D Trend</span>
-                  <span className={`text-[10px] font-medium capitalize ${data.mtf.daily_trend === 'bullish' ? 'text-bull' : data.mtf.daily_trend === 'bearish' ? 'text-bear' : 'text-gray-400'}`}>{data.mtf.daily_trend}</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-[9px] text-gray-500 uppercase tracking-widest block mb-0.5">4H Trend</span>
-                  <span className={`text-[10px] font-medium capitalize ${data.mtf.h4_trend === 'bullish' ? 'text-bull' : data.mtf.h4_trend === 'bearish' ? 'text-bear' : 'text-gray-400'}`}>{data.mtf.h4_trend}</span>
-                </div>
-              </div>
-            )}
-            {data.news && data.news.length > 0 && (
-              <div className="bg-orange-400/10 border border-orange-400/20 rounded-md p-2 col-span-2">
-                <span className="text-[9px] text-orange-400 uppercase tracking-widest block mb-0.5 flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" /> High-Impact News Today
-                </span>
-                <div className="text-[10px] text-gray-300">
-                  {data.news.map((n, i) => (
-                    <div key={i} className="truncate">• {n.event} ({new Date(n.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})</div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* Liquidity Levels */}
+          {/* Liquidity Pools */}
           {data.liquidity && (data.liquidity.bsl.length > 0 || data.liquidity.ssl.length > 0) && (
             <div className="space-y-1.5">
-              <p className="text-[10px] text-gray-500 uppercase tracking-widest">Liquidity Pools</p>
+              <p className="text-[9px] text-gray-500 uppercase tracking-widest">Liquidity Pools</p>
               <div className="grid grid-cols-2 gap-2">
-                {/* Buy-side liquidity — above */}
                 <div className="bg-bull/5 border border-bull/10 rounded-md p-2">
                   <div className="text-[9px] text-bull uppercase tracking-wider mb-1 font-semibold">BSL (above)</div>
                   {data.liquidity.bsl.slice(0, 2).map((l, i) => (
@@ -274,7 +368,6 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
                     </div>
                   ))}
                 </div>
-                {/* Sell-side liquidity — below */}
                 <div className="bg-bear/5 border border-bear/10 rounded-md p-2">
                   <div className="text-[9px] text-bear uppercase tracking-wider mb-1 font-semibold">SSL (below)</div>
                   {data.liquidity.ssl.slice(0, 2).map((l, i) => (
@@ -288,35 +381,27 @@ export function AiVerdictPanel({ symbol, timeframe, onAnalyzed }: Props) {
             </div>
           )}
 
-          {/* Watch Zone */}
-          <div className="flex items-start gap-2">
-            <Target className="w-3.5 h-3.5 text-blue-400 mt-0.5 shrink-0" />
-            <div>
-              <span className="text-[10px] text-gray-500 uppercase tracking-wider block">Watch Zone</span>
-              <span className="text-[11px] text-gray-200">{data.watch_zone}</span>
-            </div>
-          </div>
-
-          {/* Invalidation */}
-          {data.invalidation?.length > 0 && (
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="w-3.5 h-3.5 text-orange-400 mt-0.5 shrink-0" />
-              <div>
-                <span className="text-[10px] text-gray-500 uppercase tracking-wider block">Invalidation</span>
-                <ul className="text-[11px] text-gray-200 space-y-0.5">
-                  {data.invalidation.map((inv, i) => <li key={i}>• {inv}</li>)}
-                </ul>
-              </div>
-            </div>
-          )}
-
           {/* Risk Sizing */}
           {data.risk_sizing && data.risk_sizing !== "N/A" && (
             <div className="flex items-start gap-2">
               <div className="w-3.5 h-3.5 text-purple-400 mt-0.5 shrink-0 flex items-center justify-center font-bold text-[10px] bg-purple-400/20 rounded">R</div>
               <div>
-                <span className="text-[10px] text-gray-500 uppercase tracking-wider block">Risk & Sizing</span>
+                <span className="text-[9px] text-gray-500 uppercase tracking-wider block">Risk & Sizing</span>
                 <span className="text-[11px] text-purple-300">{data.risk_sizing}</span>
+              </div>
+            </div>
+          )}
+
+          {/* High-Impact News */}
+          {data.news && data.news.length > 0 && (
+            <div className="bg-orange-400/10 border border-orange-400/20 rounded-md p-2">
+              <span className="text-[9px] text-orange-400 uppercase tracking-widest block mb-0.5 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" /> High-Impact News Today
+              </span>
+              <div className="text-[10px] text-gray-300">
+                {data.news.map((n, i) => (
+                  <div key={i} className="truncate">• {n.event} ({new Date(n.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})</div>
+                ))}
               </div>
             </div>
           )}

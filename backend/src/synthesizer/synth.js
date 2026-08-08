@@ -187,29 +187,38 @@ class Synthesizer {
 - CONFLUENCE: Only call LONG or SHORT when at least 3 ICT factors align (MTF + liquidity + OB/FVG). Otherwise call WAIT.`;
 
     const prompt = `
-You are a professional institutional forex trader who trades using the ICT (Inner Circle Trader) methodology.
-You are given structured market data and must produce a concise, high-conviction trading analysis.
+You are a senior institutional trader and quant analyst reviewing a live forex setup.
+You think in Smart Money Concepts (liquidity sweeps, BOS/CHoCH, order blocks, fair value gaps, premium/discount zones), institutional order flow logic (accumulation/manipulation/distribution, stop hunts, session-based liquidity targeting), and algo-level reasoning (statistical edge, confluence weighting, invalidation conditions).
 
-Output ONLY strict JSON matching this schema (no extra keys):
+Reason about WHY price is doing what it's doing from a structural and liquidity standpoint FIRST, then use the indicator data as confirming or contradicting evidence.
+
+${modeInstructions}
+
+Output ONLY strict JSON with EXACTLY these keys:
 {
   "verdict": "WAIT" | "LONG" | "SHORT",
-  "reasoning": "<string — max 100 words, ICT language>",
-  "setup": "<string — specific entry model>",
-  "watch_zone": "<string — specific price level or zone to watch>",
-  "invalidation": ["<string>", "<string>"],
-  "risk_sizing": "<string — e.g. 'Risk 35 pips (1% = 0.28 Lots per $10k)'>"
+  "confidence": "Low" | "Medium" | "High",
+  "market_structure_read": "<Current trend/range state, last confirmed BOS or CHoCH, key swing highs/lows in play — 2-3 sentences>",
+  "liquidity_context": "<Where resting liquidity likely sits (equal highs/lows, prior session highs/lows), whether recent PA looks like a sweep, accumulation, or manipulation phase — 2-3 sentences>",
+  "session_timing": "<Which session is active, whether this aligns with typical institutional activity windows for this pair — 1-2 sentences>",
+  "confluence_check": "<How the indicator data (RSI, BB, VWAP, MTF) either supports or contradicts the structural read. Explicitly flag any disagreement between structure and indicators — 2-3 sentences>",
+  "thesis": "<Directional bias with confidence level and the full reasoning chain behind it — 3-4 sentences>",
+  "setup": "<Specific ICT entry model or IF/THEN pending scenario if WAIT — must never be null or empty>",
+  "watch_zone": "<Exact price level or zone to watch for entry>",
+  "invalidation": ["<exact price level or condition that breaks this thesis>", "<second invalidation>"],
+  "weakest_point": "<One line on the weakest part of this read — what you are least confident about>",
+  "overview": "<Summarize what you believe is happening right now and what could potentially happen in the near future — 3-4 sentences>",
+  "overview_confidence_score": <integer 0-100 representing your confidence in the directional assumption>,
+  "risk_sizing": "<e.g. 'Risk 35 pips (1% = 0.28 Lots per $10k)' or N/A if WAIT>"
 }
 
-ICT Analytical Framework (apply strictly):
-1. ${modeInstructions}
-2. ECONOMIC CALENDAR: If high-impact news is dropping soon today, default to WAIT unless the setup is pristine.
-3. KILL ZONES: Entries are highest probability during London or NY Killzones. Be highly skeptical of Asian Range breakouts.
-4. VOLUME POC: Price is drawn to the Point of Control. Use it as a magnet target or strong support/resistance.
-5. LIQUIDITY FIRST: Price is always seeking liquidity. Identify where BSL or SSL clusters sit.
-6. PREMIUM / DISCOUNT: Never go long in premium or short in discount without extreme confluence.
-7. RISK SIZING: If a setup exists, calculate the pip difference between current price and invalidation. Output position size assuming 1% risk on a $10,000 account balance (Standard Lot = $10/pip).
-8. PENDING SETUPS (IF/THEN): If verdict is WAIT, the 'setup' field MUST contain a strict 'If/Then' pending order limit scenario. E.g., 'WAIT until price sweeps SSL at 1.0850, THEN enter LONG targeting 1.0900'. NEVER output 'No valid setup'.
-9. LANGUAGE: State analysis plainly without hesitation.
+Additional rules:
+- ECONOMIC CALENDAR: If high-impact news is imminent, default to WAIT unless setup is pristine.
+- KILL ZONES: Entries are highest probability during London or NY Killzones. Flag Asian Range breakouts as low-probability.
+- VOLUME POC: Price is drawn to the Point of Control — use as magnet target or S/R.
+- PREMIUM / DISCOUNT: Never go long in premium or short in discount without extreme confluence.
+- PENDING SETUPS: If verdict is WAIT, the 'setup' field MUST contain a strict 'If [condition], THEN [action targeting X]' scenario.
+- Be direct and specific. No hedging language. Write as a senior trader briefing a junior.
 
 Market Data Input:
 ${JSON.stringify(ictContext, null, 2)}
@@ -258,9 +267,21 @@ ${JSON.stringify(ictContext, null, 2)}
 
       const result = {
         verdict:     jsonResult.verdict     || snapshot.verdict,
-        confidence:  snapshot.confidence,
+        confidence:  jsonResult.confidence  || snapshot.confidence,
         lanes:       snapshot.lanes,
-        reasoning:   jsonResult.reasoning   || 'AI narrative unavailable.',
+
+        // New 8-section structured fields
+        market_structure_read: jsonResult.market_structure_read || null,
+        liquidity_context:     jsonResult.liquidity_context     || null,
+        session_timing:        jsonResult.session_timing        || null,
+        confluence_check:      jsonResult.confluence_check      || null,
+        thesis:                jsonResult.thesis                || null,
+        weakest_point:         jsonResult.weakest_point         || null,
+        overview:              jsonResult.overview              || null,
+        overview_confidence_score: jsonResult.overview_confidence_score ?? null,
+
+        // Legacy/compatible fields
+        reasoning:   jsonResult.thesis || jsonResult.reasoning  || 'AI narrative unavailable.',
         setup:       jsonResult.setup       || null,
         watch_zone:  jsonResult.watch_zone  || snapshot.watch_zone,
         invalidation: jsonResult.invalidation || snapshot.invalidation,
