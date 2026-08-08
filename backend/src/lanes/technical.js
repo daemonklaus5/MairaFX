@@ -29,7 +29,7 @@ class TechnicalLane {
     let score = 0;
     const basis = [];
 
-    // ── EMA Stack ──
+    // ── EMA Stack & Vector Math ──
     let { ema9, ema21, ema50, ema200, rsi14, adx } = indicators;
     ema9 = ema9 ? parseFloat(ema9) : null;
     ema21 = ema21 ? parseFloat(ema21) : null;
@@ -39,33 +39,62 @@ class TechnicalLane {
     adx = adx ? parseFloat(adx) : null;
 
     if (ema9 && ema21 && ema50 && ema200) {
-      if (ema9 > ema21 && ema21 > ema50 && ema50 > ema200) {
-        score += 25;
-        basis.push('EMA stack bullish (9>21>50>200)');
-      } else if (ema9 < ema21 && ema21 < ema50 && ema50 < ema200) {
-        score -= 25;
-        basis.push('EMA stack bearish (9<21<50<200)');
+      // Calculate distance/slope between fast and slow to determine momentum vs ranging
+      const spread = Math.abs(ema9 - ema50) / ema50;
+      
+      if (spread < 0.0005) { // 0.05% spread means EMAs are tightly wound
+        basis.push('EMAs tightly compressed (Ranging Market)');
       } else {
-        basis.push('EMA stack mixed');
+        if (ema9 > ema21 && ema21 > ema50 && ema50 > ema200) {
+          score += 25;
+          basis.push('EMA stack strong bullish (sloping up)');
+        } else if (ema9 < ema21 && ema21 < ema50 && ema50 < ema200) {
+          score -= 25;
+          basis.push('EMA stack strong bearish (sloping down)');
+        } else {
+          basis.push('EMA stack mixed (transitioning)');
+        }
       }
     }
 
-    // ── RSI ──
+    // ── ADX Regime (Trend Strength) ──
+    const isTrending = adx !== null && adx > 25;
+    if (adx !== null) {
+      basis.push(isTrending ? `Strong Trend (ADX ${adx.toFixed(1)})` : `Weak/Ranging (ADX ${adx.toFixed(1)})`);
+    }
+
+    // ── RSI + Trend Context ──
     if (rsi14 !== null) {
-      if (rsi14 >= 50 && rsi14 <= 70)    { score += 10; basis.push(`RSI bullish (${rsi14.toFixed(1)})`); }
-      else if (rsi14 > 70)               { score -= 5;  basis.push(`RSI overbought (${rsi14.toFixed(1)})`); }
-      else if (rsi14 < 30)               { score += 5;  basis.push(`RSI oversold (${rsi14.toFixed(1)}) — bounce potential`); }
-      else                               { score -= 10; basis.push(`RSI bearish (${rsi14.toFixed(1)})`); }
+      if (isTrending) {
+        // In strong trends, RSI stays overbought/oversold. Don't fade it!
+        if (rsi14 > 70) {
+          score += 10;
+          basis.push(`RSI heavily overbought (${rsi14.toFixed(1)}) — Trend Continuation`);
+        } else if (rsi14 < 30) {
+          score -= 10;
+          basis.push(`RSI heavily oversold (${rsi14.toFixed(1)}) — Trend Continuation`);
+        } else {
+          basis.push(`RSI neutral (${rsi14.toFixed(1)})`);
+        }
+      } else {
+        // In ranging markets, fade the extremes
+        if (rsi14 >= 50 && rsi14 <= 70)    { score += 10; basis.push(`RSI bullish (${rsi14.toFixed(1)})`); }
+        else if (rsi14 > 70)               { score -= 15; basis.push(`RSI overbought (${rsi14.toFixed(1)}) — Mean Reversion Risk`); }
+        else if (rsi14 < 30)               { score += 15; basis.push(`RSI oversold (${rsi14.toFixed(1)}) — Bounce Potential`); }
+        else                               { score -= 10; basis.push(`RSI bearish (${rsi14.toFixed(1)})`); }
+      }
     }
 
     // ── Price vs 200 EMA ──
     if (ema200) {
-      if (currentPrice > ema200) { score += 15; basis.push('Price above 200 EMA'); }
-      else                       { score -= 15; basis.push('Price below 200 EMA'); }
+      const dist200 = Math.abs(currentPrice - ema200) / ema200;
+      if (dist200 > 0.005) { // 0.5% away
+        basis.push(currentPrice > ema200 ? 'Price overextended above 200 EMA' : 'Price overextended below 200 EMA');
+      } else {
+        if (currentPrice > ema200) { score += 15; basis.push('Price above 200 EMA'); }
+        else                       { score -= 15; basis.push('Price below 200 EMA'); }
+      }
     }
-
-    // ── ADX regime ──
-    if (adx !== null)  basis.push(adx > 25 ? `Trending (ADX ${adx.toFixed(1)})` : `Ranging (ADX ${adx.toFixed(1)})`);
 
     // ── ICT Market Structure alignment ──
     if (marketStructure) {

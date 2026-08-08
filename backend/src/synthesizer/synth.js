@@ -133,7 +133,7 @@ class Synthesizer {
       };
     }
 
-    const unmitigatedOBs = (zones.orderBlocks || []).filter(ob => !ob.mitigated).slice(-4);
+    const unmitigatedOBs = (zones.orderBlocks || []).filter(ob => !ob.mitigated).slice(-2);
     if (unmitigatedOBs.length > 0) {
       ctx.unmitigated_order_blocks = unmitigatedOBs.map(ob => ({
         type:   ob.type,    // 'bullish_ob' or 'bearish_ob'
@@ -208,6 +208,7 @@ You are a senior institutional trader and quant analyst reviewing a live forex s
 You think in Smart Money Concepts (liquidity sweeps, BOS/CHoCH, order blocks, fair value gaps, premium/discount zones), institutional order flow logic (accumulation/manipulation/distribution, stop hunts, session-based liquidity targeting), and algo-level reasoning (statistical edge, confluence weighting, invalidation conditions).
 
 Reason about WHY price is doing what it's doing from a structural and liquidity standpoint FIRST, then use the indicator data as confirming or contradicting evidence.
+CRITICAL: The Technical Lane and Market Structure data are your PRIMARY sources of truth. If Narrative or Macro news contradicts a crystal clear technical setup, prioritize the Technical setup unless the news is an imminent Tier 1 event (e.g., NFP, CPI). Do not let random news headlines distract from objective price action.
 
 ${modeInstructions}
 

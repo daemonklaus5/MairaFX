@@ -1,4 +1,5 @@
 const db = require('../db');
+const cron = require('node-cron');
 
 const TF_MINUTES = {
   '15m': 15,
@@ -11,6 +12,39 @@ class CandleBuilder {
   constructor(engine) {
     this.engine = engine;
     this.currentCandles = {}; // keyed by symbol_timeframe
+    
+    // Check for expired candles exactly on the minute
+    cron.schedule('* * * * *', () => {
+      this.checkStaleCandles();
+    });
+  }
+
+  async checkStaleCandles() {
+    const nowMs = Date.now();
+    for (const [key, candle] of Object.entries(this.currentCandles)) {
+      const minutes = TF_MINUTES[candle.timeframe];
+      const msPerTf = minutes * 60 * 1000;
+      const candleStartMs = new Date(candle.timestamp).getTime();
+      
+      // If the current time has passed the end of this candle's period
+      if (nowMs >= candleStartMs + msPerTf) {
+        // Force close it
+        await this.closeCandle(candle);
+        
+        // Generate a flat dummy candle for the new current period to prevent data gaps
+        const newStartMs = Math.floor(nowMs / msPerTf) * msPerTf;
+        this.currentCandles[key] = {
+          symbol: candle.symbol,
+          timeframe: candle.timeframe,
+          timestamp: new Date(newStartMs).toISOString(),
+          open: candle.close,
+          high: candle.close,
+          low: candle.close,
+          close: candle.close,
+          volume: 0 // Zero volume filler
+        };
+      }
+    }
   }
 
   processTick(tick) {

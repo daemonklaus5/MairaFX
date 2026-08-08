@@ -59,6 +59,34 @@ async function bootstrap() {
   const macroLane = new MacroLane();
   const synth = new Synthesizer(techLane, flowLane, narrativeLane, macroLane);
 
+  // Background Job: Pre-calculate AI Lanes for all pairs to prevent UI latency
+  const trackedPairs = ['EUR_USD', 'GBP_USD', 'USD_JPY', 'AUD_USD', 'USD_CHF', 'USD_CAD', 'NZD_USD'];
+  const trackedTimeframes = ['15m', '1H', '4H', '1D'];
+  const lanesCache = new Map();
+  
+  const cron = require('node-cron');
+  
+  async function precalculateLanes() {
+    console.log('Running background lane calculation...');
+    for (const symbol of trackedPairs) {
+      for (const tf of trackedTimeframes) {
+        try {
+          const latestInds = engine.getLatest(symbol, tf);
+          const price = latestInds ? latestInds.ema9 : 0;
+          const snapshot = await synth.evaluateRuleBased(symbol, tf, price, null);
+          lanesCache.set(`${symbol}_${tf}`, snapshot);
+        } catch (e) {
+          console.error(`Failed to precalculate ${symbol} ${tf}:`, e.message);
+        }
+      }
+    }
+  }
+
+  // Run every 5 minutes
+  cron.schedule('*/5 * * * *', precalculateLanes);
+  // Run once on startup
+  setTimeout(precalculateLanes, 5000);
+
   // Dashboard API Routes
   app.use('/api/dashboard', dashboardRoutes(engine));
 
@@ -71,6 +99,14 @@ async function bootstrap() {
   app.get('/api/lanes/:symbol/:timeframe', async (req, res) => {
     try {
       const { symbol, timeframe } = req.params;
+      const cacheKey = `${symbol}_${timeframe}`;
+      
+      // Serve instantly from cache if available
+      if (lanesCache.has(cacheKey)) {
+        return res.json(lanesCache.get(cacheKey));
+      }
+      
+      // Fallback to live calculation if cache is missed
       const latestInds = engine.getLatest(symbol, timeframe);
       const price = latestInds ? latestInds.ema9 : 0;
       const snapshot = await synth.evaluateRuleBased(symbol, timeframe, price, null);
