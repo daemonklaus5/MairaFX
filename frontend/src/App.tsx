@@ -211,7 +211,7 @@ export default function App() {
         >
           {/* COT Badge moved to the top of Analysis pane */}
           <CotBadge symbol={symbol} />
-          <KeyDriversPanel symbol={symbol} timezone={timezone} />
+          <KeyDriversPanel symbol={symbol} />
         </div>
 
       </div>
