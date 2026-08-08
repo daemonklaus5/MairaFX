@@ -179,6 +179,7 @@ class Synthesizer {
 
     const modeInstructions = mode === 'aggressive'
       ? `AGGRESSIVE SCALPER MODE:
+- FORCED DIRECTION: You MUST choose either LONG or SHORT. You are strictly FORBIDDEN from returning WAIT. If the setup is messy, pick the direction with the path of least resistance.
 - You are a high-frequency scalper. Ignore the Daily/4H MTF alignment if there is a clear 15m/1H setup.
 - You only need 1 or 2 ICT factors to align (e.g., a simple liquidity sweep or FVG fill).
 - Take setups even if they are counter-trend.`
@@ -196,7 +197,7 @@ ${modeInstructions}
 
 Output ONLY strict JSON with EXACTLY these keys:
 {
-  "verdict": "WAIT" | "LONG" | "SHORT",
+  "verdict": "${mode === 'aggressive' ? 'LONG" | "SHORT' : 'WAIT" | "LONG" | "SHORT'}",
   "confidence": "Low" | "Medium" | "High",
   "market_structure_read": "<Current trend/range state, last confirmed BOS or CHoCH, key swing highs/lows in play. MUST include exact prices for structure levels — 2-3 sentences>",
   "liquidity_context": "<Where resting liquidity likely sits (equal highs/lows, prior session highs/lows), whether recent PA looks like a sweep, accumulation, or manipulation phase. MUST cite exact prices and pip distances from the data — 2-3 sentences>",
