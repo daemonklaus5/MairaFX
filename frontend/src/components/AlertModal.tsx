@@ -88,33 +88,52 @@ export function AlertModal({ symbol }: { symbol: string }) {
             </div>
 
             <div className="border-t border-gray-800 pt-6">
-              <h3 className="text-sm uppercase tracking-wide text-gray-500 font-semibold mb-3">Create New Alert</h3>
-              <div className="flex gap-2">
-                <select 
-                  value={condition} 
-                  onChange={e => setCondition(e.target.value)}
-                  className="bg-darker border border-gray-700 rounded-md px-2 py-2 text-sm text-white flex-1"
-                >
-                  <option value="PRICE_ABOVE">Crosses Above</option>
-                  <option value="PRICE_BELOW">Crosses Below</option>
-                </select>
-                <input 
-                  type="number" 
-                  value={target}
-                  onChange={e => setTarget(e.target.value)}
-                  placeholder="Price level"
-                  className="bg-darker border border-gray-700 rounded-md px-3 py-2 text-sm text-white flex-1 font-mono"
-                  step="0.0001"
-                />
+              <h3 className="text-sm uppercase tracking-wide text-gray-500 font-semibold mb-4">Create New Alert</h3>
+              
+              <div className="flex flex-col gap-4">
+                <div className="flex gap-3">
+                  <div className="flex-1 flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Condition</label>
+                    <select 
+                      value={condition} 
+                      onChange={e => setCondition(e.target.value)}
+                      className="bg-darker border border-gray-700 rounded-md px-3 py-2.5 text-sm text-white w-full focus:outline-none focus:border-primary transition-colors"
+                    >
+                      <option value="PRICE_ABOVE">Crosses Above</option>
+                      <option value="PRICE_BELOW">Crosses Below</option>
+                    </select>
+                  </div>
+                  
+                  <div className="flex-1 flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Target Price</label>
+                    <input 
+                      type="number" 
+                      value={target}
+                      onChange={e => setTarget(e.target.value)}
+                      placeholder="e.g. 1.1550"
+                      className="bg-darker border border-gray-700 rounded-md px-3 py-2.5 text-sm text-white w-full font-mono focus:outline-none focus:border-primary transition-colors"
+                      step="0.0001"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-2 flex items-center justify-end gap-3 pt-2">
+                  <button 
+                    onClick={() => setIsOpen(false)}
+                    className="px-4 py-2 text-sm font-bold text-gray-400 hover:text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={handleCreate}
+                    disabled={!target}
+                    className="flex items-center justify-center gap-2 bg-primary hover:bg-emerald-400 text-darker font-bold px-6 py-2 rounded-md disabled:opacity-50 transition-colors shadow-sm"
+                  >
+                    <BellPlus className="w-4 h-4" />
+                    Add Alert
+                  </button>
+                </div>
               </div>
-              <button 
-                onClick={handleCreate}
-                disabled={!target}
-                className="mt-3 w-full flex items-center justify-center gap-2 bg-primary hover:bg-emerald-400 text-darker font-bold py-2 rounded-md disabled:opacity-50 transition-colors"
-              >
-                <BellPlus className="w-4 h-4" />
-                Add Alert
-              </button>
             </div>
           </div>
         </div>
