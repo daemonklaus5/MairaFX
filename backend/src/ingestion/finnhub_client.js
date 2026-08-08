@@ -13,7 +13,7 @@ class FinnhubClient {
     this.wsUrl = `wss://ws.finnhub.io?token=${this.apiKey}`;
     
     // Internal symbols we care about
-    this.internalPairs = ['EUR_USD', 'GBP_USD', 'USD_JPY', 'AUD_USD'];
+    this.internalPairs = ['EUR_USD', 'GBP_USD', 'USD_JPY', 'AUD_USD', 'USD_CHF', 'USD_CAD', 'NZD_USD'];
     
     // Map internal pairs to Finnhub symbols (e.g. OANDA:EUR_USD)
     this.finnhubPairs = this.internalPairs.map(p => `OANDA:${p}`);

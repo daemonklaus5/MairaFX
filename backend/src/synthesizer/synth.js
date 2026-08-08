@@ -175,6 +175,22 @@ class Synthesizer {
       return { ...cached.result, cached: true };
     }
 
+    if (!zones) {
+      return {
+        verdict: snapshot.verdict,
+        confidence: snapshot.confidence,
+        lanes: snapshot.lanes,
+        reasoning: "AI commentary unavailable: Market data is currently missing or pending for this pair. Waiting for tick data.",
+        setup: null,
+        watch_zone: "Pending data",
+        invalidation: [],
+        risk_sizing: "N/A",
+        liquidity: null,
+        cached: false,
+        fallback: true
+      };
+    }
+
     const ictContext = this._buildIctContext(zones, snapshot, mtfZones, econCalendar);
 
     const modeInstructions = mode === 'aggressive'
