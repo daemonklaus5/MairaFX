@@ -18,6 +18,7 @@ const runMigrations = require('./db/migrations');
 const cotJob = require('./cot/job');
 const AlertManager = require('./alerts/manager');
 const { fetchForexNews, fetchEconomicCalendar } = require('./ingestion/finnhub_news');
+const dashboardRoutes = require('./api/dashboard_routes');
 
 const app = express();
 const server = http.createServer(app);
@@ -57,6 +58,9 @@ async function bootstrap() {
   const narrativeLane = new NarrativeLane();
   const macroLane = new MacroLane();
   const synth = new Synthesizer(techLane, flowLane, narrativeLane, macroLane);
+
+  // Dashboard API Routes
+  app.use('/api/dashboard', dashboardRoutes(engine));
 
   // REST API
   app.get('/api/zones/:symbol/:timeframe', async (req, res) => {

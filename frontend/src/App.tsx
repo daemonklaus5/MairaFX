@@ -6,6 +6,11 @@ import { LanePanel } from './components/LanePanel';
 import { KeyDriversPanel } from './components/KeyDriversPanel';
 import { CotBadge } from './components/CotBadge';
 import { AlertModal } from './components/AlertModal';
+import { RetailSentiment } from './components/RetailSentiment';
+import { CurrencyHeatmap } from './components/CurrencyHeatmap';
+import { EconomicCalendar } from './components/EconomicCalendar';
+import { VolatilityMonitor } from './components/VolatilityMonitor';
+import { SessionVisualizer } from './components/SessionVisualizer';
 
 interface LaneData {
   bias: 'bull' | 'bear' | 'mixed';
@@ -211,6 +216,12 @@ export default function App() {
         >
           {/* COT Badge moved to the top of Analysis pane */}
           <CotBadge symbol={symbol} />
+          
+          <CurrencyHeatmap />
+          <RetailSentiment symbol={symbol} />
+          <VolatilityMonitor symbol={symbol} timeframe={timeframe} />
+          <SessionVisualizer />
+          <EconomicCalendar timezone={timezone} />
           <KeyDriversPanel symbol={symbol} />
         </div>
 
