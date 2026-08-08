@@ -1,8 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Search } from 'lucide-react';
 
 interface ChartProps {
   symbol: string;
+  setSymbol: (symbol: string) => void;
   timeframe: string;
+  pairs: string[];
 }
 
 // Map our internal symbols to TradingView's OANDA format
@@ -23,14 +26,23 @@ function toTvInterval(timeframe: string): string {
   return map[timeframe] || '15';
 }
 
-export function Chart({ symbol, timeframe }: ChartProps) {
+export function Chart({ symbol, setSymbol, timeframe, pairs }: ChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetRef = useRef<any>(null);
+  
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Optional: add more standard pairs to search list if desired, or just use core pairs
+  const extendedPairs = [...new Set([...pairs, 'USD_CAD', 'USD_CHF', 'NZD_USD', 'EUR_GBP', 'EUR_JPY', 'GBP_JPY', 'AUD_JPY'])];
+  
+  const filteredPairs = extendedPairs.filter(p => 
+    p.replace('_', '').toLowerCase().includes(searchQuery.replace('_', '').toLowerCase())
+  );
 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Clear previous widget
     containerRef.current.innerHTML = '';
 
     const script = document.createElement('script');
@@ -46,7 +58,7 @@ export function Chart({ symbol, timeframe }: ChartProps) {
         interval: toTvInterval(timeframe),
         timezone: 'Etc/UTC',
         theme: 'dark',
-        style: '1', // Candlestick
+        style: '1', 
         locale: 'en',
         toolbar_bg: '#0b0e14',
         enable_publishing: false,
@@ -89,6 +101,46 @@ export function Chart({ symbol, timeframe }: ChartProps) {
 
   return (
     <div className="relative w-full h-full bg-panel rounded-lg overflow-hidden border border-gray-800">
+      
+      {/* Search Overlay */}
+      <div className="absolute top-3 left-4 z-50 flex flex-col gap-1">
+        <div 
+          className={`flex items-center bg-gray-900 border ${isSearching ? 'border-primary' : 'border-gray-700'} rounded shadow-lg px-2 py-1.5 w-48 transition-colors`}
+        >
+          <Search className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
+          <input 
+            type="text"
+            placeholder={symbol.replace('_', '/')}
+            value={searchQuery}
+            onFocus={() => setIsSearching(true)}
+            onBlur={() => setTimeout(() => setIsSearching(false), 200)}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="bg-transparent text-sm text-white focus:outline-none w-full font-bold placeholder-white"
+          />
+        </div>
+
+        {isSearching && (
+          <div className="bg-gray-900 border border-gray-700 rounded shadow-xl max-h-[200px] overflow-y-auto">
+            {filteredPairs.map(p => (
+              <button
+                key={p}
+                onMouseDown={() => {
+                  setSymbol(p);
+                  setSearchQuery('');
+                  setIsSearching(false);
+                }}
+                className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+              >
+                {p.replace('_', '/')}
+              </button>
+            ))}
+            {filteredPairs.length === 0 && (
+              <div className="px-3 py-2 text-sm text-gray-500">No pairs found</div>
+            )}
+          </div>
+        )}
+      </div>
+
       <div
         id="tradingview-widget"
         ref={containerRef}
