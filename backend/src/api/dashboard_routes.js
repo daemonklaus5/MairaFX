@@ -94,7 +94,7 @@ module.exports = function(engine) {
     // In a full production env, we'd query the DB for the last 20 ATRs.
     
     // For now, let's use the current ATR and create a slight oscillation to demonstrate UI
-    const currentAtr = latest.atr;
+    const currentAtr = parseFloat(latest.atr);
     
     // Deterministic fake historical avg ATR based on minute to show both Expansion/Compression
     const minute = new Date().getMinutes();
