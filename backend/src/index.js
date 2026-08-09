@@ -188,9 +188,9 @@ async function bootstrap() {
     try {
       const db = require('./db');
       const rowsRes = await db.query('SELECT symbol, timeframe, timestamp, open, high, low, close, volume FROM candles ORDER BY symbol, timeframe, timestamp ASC');
-      let csv = 'timestamp,symbol,timeframe,open,high,low,close,volume\\n';
+      let csv = 'timestamp,symbol,timeframe,open,high,low,close,volume\n';
       rowsRes.rows.forEach(r => {
-        csv += \`\${new Date(r.timestamp).toISOString()},\${r.symbol},\${r.timeframe},\${r.open},\${r.high},\${r.low},\${r.close},\${r.volume}\\n\`;
+        csv += `${new Date(r.timestamp).toISOString()},${r.symbol},${r.timeframe},${r.open},${r.high},${r.low},${r.close},${r.volume}\n`;
       });
       res.header('Content-Type', 'text/csv');
       res.attachment('candles_history.csv');

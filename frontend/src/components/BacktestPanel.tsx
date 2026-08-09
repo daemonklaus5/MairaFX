@@ -265,7 +265,7 @@ const BacktestPanel: React.FC = () => {
             </thead>
             <tbody>
               {pipelineStatus && pipelineStatus.map(p => (
-                <tr key={\`\${p.symbol}_\${p.timeframe}\`}>
+                <tr key={`${p.symbol}_${p.timeframe}`}>
                   <td><span className="badge pair-badge">{p.symbol}</span></td>
                   <td><span className="badge tf-badge">{p.timeframe}</span></td>
                   <td className="font-mono text-profit">
