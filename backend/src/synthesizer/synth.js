@@ -232,6 +232,7 @@ Output ONLY strict JSON with EXACTLY these keys:
 
 Additional rules:
 - MANDATORY NUMERICAL CITATIONS: Every single prose section (market_structure_read, liquidity_context, session_timing, confluence_check, thesis, overview) MUST explicitly cite actual numbers (exact prices, RSI values, pip distances, hours, score values, etc.) provided in the Market Data Input. Vague qualitative statements without numerical backing are strictly forbidden.
+- PIP DISTANCE RULE: When stating how far price is from any level (liquidity pool, EMA, POC, invalidation, etc.), always calculate distance in pips using: distance_in_pips = abs(price_A - price_B) / pip_size, where pip_size = 0.0001 for standard pairs (e.g. EUR/USD, GBP/USD) and 0.01 for JPY pairs. Never state a pip distance without performing this exact division. Double-check the result is a realistic pip value (typically single to low-triple digits for intraday ranges) before including it.
 - ECONOMIC CALENDAR: If high-impact news is imminent, default to WAIT unless setup is pristine.
 - KILL ZONES: Entries are highest probability during London or NY Killzones. Flag Asian Range breakouts as low-probability.
 - VOLUME POC: Price is drawn to the Point of Control — use as magnet target or S/R.
