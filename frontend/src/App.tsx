@@ -77,8 +77,8 @@ export default function App() {
             </h1>
           </div>
 
-          {/* CENTER: Fixed Toggle */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex bg-black/40 rounded-md p-1 border border-gray-700/50 shadow-sm z-20 backdrop-blur-md">
+          {/* CENTER: Fixed Toggle (Desktop Only) */}
+          <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/40 rounded-md p-1 border border-gray-700/50 shadow-sm z-20 backdrop-blur-md">
             <button
               onClick={() => setActiveTab('chart')}
               className={`px-4 py-1.5 rounded text-xs font-bold transition-colors ${
@@ -196,7 +196,7 @@ export default function App() {
       <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden relative">
         
         {/* --- CHART TAB --- */}
-        <div className={`w-full lg:flex-1 h-[400px] lg:h-auto lg:overflow-hidden px-2 md:px-4 pb-2 md:pb-4 pt-1 md:pt-2 shrink-0 ${activeTab === 'chart' ? 'block' : 'hidden'}`}>
+        <div className={`w-full lg:flex-1 h-[55vh] md:h-[400px] lg:h-auto lg:overflow-hidden px-2 md:px-4 pb-2 md:pb-4 pt-1 md:pt-2 shrink-0 ${activeTab === 'chart' ? 'block' : 'hidden'}`}>
           <Chart symbol={symbol} timeframe={timeframe} timezone={timezone} />
         </div>
 
@@ -249,6 +249,34 @@ export default function App() {
         </div>
 
       </div>
+
+      {/* ── Mobile Bottom Navigation ── */}
+      <nav className="md:hidden shrink-0 bg-darker/95 backdrop-blur-lg border-t border-gray-800 flex justify-around items-center p-2 pb-safe z-50">
+        <button
+          onClick={() => setActiveTab('chart')}
+          className={`flex-1 py-3 text-xs font-bold transition-colors ${
+            activeTab === 'chart' ? 'text-primary' : 'text-gray-500'
+          }`}
+        >
+          Chart
+        </button>
+        <button
+          onClick={() => setActiveTab('analysis')}
+          className={`flex-1 py-3 text-xs font-bold transition-colors ${
+            activeTab === 'analysis' ? 'text-primary' : 'text-gray-500'
+          }`}
+        >
+          Analysis
+        </button>
+        <button
+          onClick={() => setActiveTab('backtest')}
+          className={`flex-1 py-3 text-xs font-bold transition-colors ${
+            activeTab === 'backtest' ? 'text-primary' : 'text-gray-500'
+          }`}
+        >
+          Backtest
+        </button>
+      </nav>
     </div>
   );
 }
