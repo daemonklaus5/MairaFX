@@ -92,6 +92,10 @@ async function bootstrap() {
   cron.schedule('*/30 * * * *', resolvePendingVerdicts);
   setTimeout(resolvePendingVerdicts, 10000); // Run once shortly after startup
 
+  // Background Job: Historical Data Pipeline Daily Update
+  const dataPipeline = require('./jobs/data_pipeline');
+  cron.schedule('0 0 * * *', dataPipeline.runDailyUpdate); // Run at midnight every day
+
   // Dashboard API Routes
   app.use('/api/dashboard', dashboardRoutes(engine));
 
@@ -157,6 +161,41 @@ async function bootstrap() {
       });
     } catch (e) {
       console.error(e);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get('/api/data-pipeline/status', async (req, res) => {
+    try {
+      const status = await dataPipeline.getStatus();
+      res.json(status);
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post('/api/data-pipeline/trigger-backfill', async (req, res) => {
+    try {
+      // Fire and forget so it doesn't block the request
+      dataPipeline.runHistoricalBackfill().catch(console.error);
+      res.json({ message: 'Historical backfill started in the background.' });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get('/api/data-pipeline/export', async (req, res) => {
+    try {
+      const db = require('./db');
+      const rowsRes = await db.query('SELECT symbol, timeframe, timestamp, open, high, low, close, volume FROM candles ORDER BY symbol, timeframe, timestamp ASC');
+      let csv = 'timestamp,symbol,timeframe,open,high,low,close,volume\\n';
+      rowsRes.rows.forEach(r => {
+        csv += \`\${new Date(r.timestamp).toISOString()},\${r.symbol},\${r.timeframe},\${r.open},\${r.high},\${r.low},\${r.close},\${r.volume}\\n\`;
+      });
+      res.header('Content-Type', 'text/csv');
+      res.attachment('candles_history.csv');
+      return res.send(csv);
+    } catch (e) {
       res.status(500).json({ error: e.message });
     }
   });

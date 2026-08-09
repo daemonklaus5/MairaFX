@@ -43,22 +43,41 @@ interface BacktestStats {
   confluence_stats: ConfluenceStat;
 }
 
+interface PipelineStatus {
+  symbol: string;
+  timeframe: string;
+  total_rows: string;
+  earliest: string;
+  latest: string;
+}
+
 const BacktestPanel: React.FC = () => {
   const [stats, setStats] = useState<BacktestStats | null>(null);
+  const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [backfillTriggered, setBackfillTriggered] = useState(false);
 
   useEffect(() => {
-    fetch('/api/backtest/stats')
-      .then(res => res.json())
-      .then(data => {
-        setStats(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error('Failed to fetch backtest stats:', err);
-        setLoading(false);
-      });
+    Promise.all([
+      fetch('/api/backtest/stats').then(res => res.json()),
+      fetch('/api/data-pipeline/status').then(res => res.json())
+    ])
+    .then(([statsData, pipelineData]) => {
+      setStats(statsData);
+      setPipelineStatus(pipelineData);
+      setLoading(false);
+    })
+    .catch(err => {
+      console.error('Failed to fetch data:', err);
+      setLoading(false);
+    });
   }, []);
+
+  const triggerBackfill = () => {
+    setBackfillTriggered(true);
+    fetch('/api/data-pipeline/trigger-backfill', { method: 'POST' })
+      .catch(console.error);
+  };
 
   if (loading) {
     return (
@@ -211,6 +230,61 @@ const BacktestPanel: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Historical Data Pipeline */}
+      <div className="pipeline-section glass-panel mt-4">
+        <div className="pipeline-header">
+          <div>
+            <h3>Data Lake Pipeline</h3>
+            <p className="helper-text">Historical OHLCV data synchronized with OANDA for offline quant backtesting.</p>
+          </div>
+          <div className="pipeline-actions">
+            <button 
+              className="btn btn-primary"
+              onClick={triggerBackfill}
+              disabled={backfillTriggered}
+            >
+              {backfillTriggered ? 'Backfilling in BG...' : 'Run Massive Backfill'}
+            </button>
+            <a href="/api/data-pipeline/export" className="btn btn-secondary">
+              Export to CSV
+            </a>
+          </div>
+        </div>
+
+        <div className="table-responsive">
+          <table className="ledger-table pipeline-table">
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Timeframe</th>
+                <th>Total Candles</th>
+                <th>Earliest Record</th>
+                <th>Latest Record</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pipelineStatus && pipelineStatus.map(p => (
+                <tr key={\`\${p.symbol}_\${p.timeframe}\`}>
+                  <td><span className="badge pair-badge">{p.symbol}</span></td>
+                  <td><span className="badge tf-badge">{p.timeframe}</span></td>
+                  <td className="font-mono text-profit">
+                    {parseInt(p.total_rows).toLocaleString()}
+                  </td>
+                  <td className="text-muted">{new Date(p.earliest).toLocaleDateString()}</td>
+                  <td className="text-muted">{new Date(p.latest).toLocaleString()}</td>
+                </tr>
+              ))}
+              {(!pipelineStatus || pipelineStatus.length === 0) && (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '2rem' }}>No candle data exists in the lake.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   );
 };
