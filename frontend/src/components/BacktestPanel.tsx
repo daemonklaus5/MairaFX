@@ -109,9 +109,11 @@ const BacktestPanel: React.FC = () => {
 
   if (!stats) return <div className="backtest-container">Failed to load data.</div>;
 
-  const calculateWinRate = (wins: number, total: number) => {
-    if (total === 0) return 0;
-    return Math.round((wins / total) * 100);
+  const calculateWinRate = (wins: number | string, total: number | string) => {
+    const w = Number(wins);
+    const t = Number(total);
+    if (t === 0 || isNaN(t) || isNaN(w)) return 0;
+    return Math.round((w / t) * 100);
   };
 
   const getOutcomeColor = (outcome: string) => {

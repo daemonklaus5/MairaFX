@@ -77,12 +77,15 @@ async function runBacktest(runId, pairs, timeframe, detector, synth) {
           let target = null;
           let invalidation = null;
 
-          if (snapshot.verdict === 'LONG' && zones.resistance && zones.resistance.length > 0) {
-            target = zones.resistance[0].price;
-            invalidation = zones.support && zones.support.length > 0 ? zones.support[0].min : entry - (target - entry);
-          } else if (snapshot.verdict === 'SHORT' && zones.support && zones.support.length > 0) {
-            target = zones.support[0].price;
-            invalidation = zones.resistance && zones.resistance.length > 0 ? zones.resistance[0].max : entry + (entry - target);
+          let validResistances = (zones.resistance || []).filter(r => r.price > entry);
+          let validSupports = (zones.support || []).filter(s => s.price < entry).sort((a,b) => b.price - a.price);
+
+          if (snapshot.verdict === 'LONG') {
+            target = validResistances.length > 0 ? validResistances[0].price : entry + (50 * pipSize);
+            invalidation = validSupports.length > 0 ? validSupports[0].min : entry - (target - entry);
+          } else if (snapshot.verdict === 'SHORT') {
+            target = validSupports.length > 0 ? validSupports[0].price : entry - (50 * pipSize);
+            invalidation = validResistances.length > 0 ? validResistances[0].max : entry + (entry - target);
           }
 
           if (target && invalidation) {

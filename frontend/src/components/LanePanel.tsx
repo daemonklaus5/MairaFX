@@ -34,7 +34,7 @@ export function LanePanel({ data }: { data: LanesResponse | null }) {
   if (!data) {
     return (
       <div className="flex flex-col items-center justify-center py-5 text-center gap-2 opacity-50">
-        <div className="grid grid-cols-2 gap-2 w-full">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 w-full">
           {['Technical', 'Flow', 'Narrative', 'Macro'].map((name) => (
             <div
               key={name}
@@ -80,7 +80,7 @@ export function LanePanel({ data }: { data: LanesResponse | null }) {
   };
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
       {Object.entries(data.lanes).map(([name, lane]) => renderLane(name, lane))}
     </div>
   );

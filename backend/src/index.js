@@ -389,7 +389,7 @@ async function bootstrap() {
   app.post('/api/backtest/run', async (req, res) => {
     try {
       const { pairs, timeframe, startDate, endDate, useAi } = req.body;
-      const runId = `Backtest — ${timeframe} — ${new Date().toISOString().slice(0, 10)} ${Date.now().toString().slice(-4)}`;
+      const runId = `Offline [${timeframe}] ${new Date().toLocaleTimeString()} - ${pairs.join(', ')}`;
       
       // Fire and forget
       backtester.runBacktest(runId, pairs, timeframe, detector, synth);

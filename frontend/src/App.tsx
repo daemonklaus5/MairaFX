@@ -209,30 +209,38 @@ export default function App() {
 
 
         {/* --- ANALYSIS TAB --- */}
-        <div className={`w-full lg:w-1/2 h-full flex-col p-4 md:p-6 overflow-y-auto bg-darker ${activeTab === 'analysis' ? 'flex' : 'hidden'}`}>
-          <div className="w-full">
-            <div className="bg-panel rounded-lg border border-gray-800 p-4 shadow-lg">
-              <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
-                Rule-Based Lanes
-              </h2>
+        <div className={`w-full h-full p-4 md:p-6 overflow-y-auto bg-darker ${activeTab === 'analysis' ? 'block' : 'hidden'}`}>
+          <div className="max-w-7xl mx-auto flex flex-col gap-4">
+            
+            {/* Top Banner: Rule-Based Lanes */}
+            <div className="w-full">
               <LanePanel data={laneData} />
             </div>
-          </div>
-        </div>
 
-        <div
-          className={`w-full lg:w-1/2 shrink-0 lg:overflow-y-auto lg:border-l border-t lg:border-t-0 border-gray-800 p-4 md:p-6 space-y-4 text-sm bg-darker/50 ${activeTab === 'analysis' ? 'block' : 'hidden'}`}
-          style={{ scrollbarGutter: 'stable' }}
-        >
-          {/* COT Badge moved to the top of Analysis pane */}
-          <CotBadge symbol={symbol} />
-          
-          <CurrencyHeatmap />
-          <RetailSentiment />
-          <VolatilityMonitor symbol={symbol} timeframe={timeframe} />
-          <SessionVisualizer />
-          <EconomicCalendar timezone={timezone} />
-          <KeyDriversPanel symbol={symbol} />
+            {/* Grid for Widgets */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              
+              {/* Column 1: Sentiment & Key Drivers */}
+              <div className="flex flex-col gap-4">
+                <CotBadge symbol={symbol} />
+                <RetailSentiment />
+                <KeyDriversPanel symbol={symbol} />
+              </div>
+
+              {/* Column 2: Market Conditions */}
+              <div className="flex flex-col gap-4">
+                <CurrencyHeatmap />
+                <VolatilityMonitor symbol={symbol} timeframe={timeframe} />
+                <SessionVisualizer />
+              </div>
+
+              {/* Column 3: Macro */}
+              <div className="flex flex-col gap-4">
+                <EconomicCalendar timezone={timezone} />
+              </div>
+
+            </div>
+          </div>
         </div>
 
         {/* --- BACKTEST TAB --- */}

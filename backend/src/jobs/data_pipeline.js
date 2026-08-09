@@ -47,6 +47,18 @@ async function insertCandles(symbol, internalTf, candles) {
 // 1. One-Time Backfill Script
 async function runHistoricalBackfill(pairs = PAIRS, timeframes = TIMEFRAMES) {
   console.log('[DataPipeline] Starting massive historical backfill...');
+  
+  if (pairs === PAIRS) {
+    try {
+      const res = await db.query('SELECT DISTINCT symbol FROM candles');
+      if (res.rows.length > 0) {
+        pairs = res.rows.map(r => r.symbol);
+      }
+    } catch (err) {
+      console.warn('[DataPipeline] Failed to fetch dynamic pairs, falling back to default PAIRS.');
+    }
+  }
+
   // 3 years cutoff
   const cutoffDate = new Date();
   cutoffDate.setFullYear(cutoffDate.getFullYear() - 3);
