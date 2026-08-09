@@ -52,6 +52,7 @@ export function Chart({ symbol, timeframe, timezone }: ChartProps) {
         enable_publishing: false,
         allow_symbol_change: false,
         hide_top_toolbar: false,
+        hide_side_toolbar: false,
         hide_legend: false,
         save_image: false,
         backgroundColor: '#0b0e14',
