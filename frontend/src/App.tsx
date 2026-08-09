@@ -210,7 +210,7 @@ export default function App() {
 
         {/* --- ANALYSIS TAB --- */}
         <div className={`w-full h-full p-4 md:p-6 overflow-y-auto bg-transparent ${activeTab === 'analysis' ? 'block' : 'hidden'}`}>
-          <div className="max-w-7xl mx-auto flex flex-col gap-4">
+          <div className="max-w-[1800px] w-full mx-auto flex flex-col gap-4">
             
             {/* Top Banner: Rule-Based Lanes */}
             <div className="w-full">
