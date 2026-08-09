@@ -66,7 +66,7 @@ export default function App() {
   return (
     <div className="h-screen flex flex-col text-gray-200 overflow-hidden bg-transparent">
       {/* ── Floating Header ── */}
-      <header className="shrink-0 z-50 glass-card mx-2 md:mx-4 mt-2 md:mt-4 px-3 py-2 md:px-6 md:py-3 mb-2 md:mb-4">
+      <header className="shrink-0 z-50 glass-card mx-2 md:mx-4 mt-1 md:mt-2 px-3 py-1 md:px-4 md:py-1 mb-0">
         <div className="flex items-center justify-between gap-2 h-10 relative">
           
           {/* LEFT: Logo */}
@@ -196,12 +196,12 @@ export default function App() {
       <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden relative">
         
         {/* --- CHART TAB --- */}
-        <div className={`w-full lg:flex-1 h-[400px] lg:h-auto lg:overflow-hidden p-3 md:p-4 shrink-0 ${activeTab === 'chart' ? 'block' : 'hidden'}`}>
+        <div className={`w-full lg:flex-1 h-[400px] lg:h-auto lg:overflow-hidden px-2 md:px-4 pb-2 md:pb-4 pt-1 md:pt-2 shrink-0 ${activeTab === 'chart' ? 'block' : 'hidden'}`}>
           <Chart symbol={symbol} timeframe={timeframe} timezone={timezone} />
         </div>
 
         <div
-          className={`w-full lg:w-[300px] xl:w-[320px] shrink-0 lg:overflow-y-auto lg:border-l border-t lg:border-t-0 border-gray-800 p-3 space-y-3 text-sm bg-darker/50 ${activeTab === 'chart' ? 'block' : 'hidden'}`}
+          className={`w-full lg:w-[300px] xl:w-[320px] shrink-0 lg:overflow-y-auto lg:border-l border-t lg:border-t-0 border-gray-800 px-3 pb-3 pt-1 md:pt-2 space-y-3 text-sm bg-darker/50 ${activeTab === 'chart' ? 'block' : 'hidden'}`}
           style={{ scrollbarGutter: 'stable' }}
         >
           <AiVerdictPanel symbol={symbol} timeframe={timeframe} timezone={timezone} onAnalyzed={handleAnalyzed} />
@@ -209,7 +209,7 @@ export default function App() {
 
 
         {/* --- ANALYSIS TAB --- */}
-        <div className={`w-full h-full p-4 md:p-6 overflow-y-auto bg-transparent ${activeTab === 'analysis' ? 'block' : 'hidden'}`}>
+        <div className={`w-full h-full px-4 md:px-6 pb-4 md:pb-6 pt-1 md:pt-2 overflow-y-auto bg-transparent ${activeTab === 'analysis' ? 'block' : 'hidden'}`}>
           <div className="w-full mx-auto flex flex-col gap-4">
             
             {/* Top Banner: Rule-Based Lanes */}
