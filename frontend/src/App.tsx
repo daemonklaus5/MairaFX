@@ -11,6 +11,7 @@ import { CurrencyHeatmap } from './components/CurrencyHeatmap';
 import { EconomicCalendar } from './components/EconomicCalendar';
 import { VolatilityMonitor } from './components/VolatilityMonitor';
 import { SessionVisualizer } from './components/SessionVisualizer';
+import BacktestPanel from './components/BacktestPanel';
 
 interface LaneData {
   bias: 'bull' | 'bear' | 'mixed';
@@ -32,7 +33,7 @@ export default function App() {
   const [symbol, setSymbol] = useState('EUR_USD');
   const [timeframe, setTimeframe] = useState('15m');
   const [laneData, setLaneData] = useState<LanesState | null>(null);
-  const [activeTab, setActiveTab] = useState<'chart' | 'analysis'>('chart');
+  const [activeTab, setActiveTab] = useState<'chart' | 'analysis' | 'backtest'>('chart');
   const [timezone, setTimezone] = useState<'UTC' | 'IST'>('UTC');
 
   // Search state
@@ -92,6 +93,14 @@ export default function App() {
               }`}
             >
               Analysis
+            </button>
+            <button
+              onClick={() => setActiveTab('backtest')}
+              className={`px-4 py-1.5 rounded text-xs font-bold transition-colors ${
+                activeTab === 'backtest' ? 'bg-primary text-darker shadow-sm' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Backtest
             </button>
           </div>
 
@@ -223,6 +232,11 @@ export default function App() {
           <SessionVisualizer />
           <EconomicCalendar timezone={timezone} />
           <KeyDriversPanel symbol={symbol} />
+        </div>
+
+        {/* --- BACKTEST TAB --- */}
+        <div className={`w-full h-full overflow-y-auto bg-darker ${activeTab === 'backtest' ? 'block' : 'hidden'}`}>
+          <BacktestPanel />
         </div>
 
       </div>

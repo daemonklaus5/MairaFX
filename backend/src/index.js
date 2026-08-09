@@ -87,10 +87,80 @@ async function bootstrap() {
   // Run once on startup
   setTimeout(precalculateLanes, 5000);
 
+  // Background Job: AI Verdict Resolver
+  const resolvePendingVerdicts = require('./jobs/resolver');
+  cron.schedule('*/30 * * * *', resolvePendingVerdicts);
+  setTimeout(resolvePendingVerdicts, 10000); // Run once shortly after startup
+
   // Dashboard API Routes
   app.use('/api/dashboard', dashboardRoutes(engine));
 
   // REST API
+  app.get('/api/backtest/stats', async (req, res) => {
+    try {
+      const db = require('./db');
+      
+      const bucketRes = await db.query(`
+        SELECT 
+          CASE 
+            WHEN conviction_score <= 40 THEN '0-40'
+            WHEN conviction_score <= 60 THEN '41-60'
+            WHEN conviction_score <= 80 THEN '61-80'
+            ELSE '81-100'
+          END AS bucket,
+          COUNT(*) as total,
+          SUM(CASE WHEN outcome IN ('WIN', 'CORRECT_WAIT') THEN 1 ELSE 0 END) as wins
+        FROM ai_verdicts
+        WHERE outcome != 'PENDING'
+        GROUP BY bucket
+      `);
+
+      const pairRes = await db.query(`
+        SELECT pair, COUNT(*) as total, SUM(CASE WHEN outcome IN ('WIN', 'CORRECT_WAIT') THEN 1 ELSE 0 END) as wins
+        FROM ai_verdicts 
+        WHERE outcome != 'PENDING' 
+        GROUP BY pair
+      `);
+
+      const waitRes = await db.query(`
+        SELECT COUNT(*) as total, SUM(CASE WHEN outcome = 'CORRECT_WAIT' THEN 1 ELSE 0 END) as correct
+        FROM ai_verdicts 
+        WHERE verdict = 'WAIT' AND outcome != 'PENDING'
+      `);
+
+      const recentRes = await db.query(`
+        SELECT * FROM ai_verdicts 
+        ORDER BY timestamp DESC 
+        LIMIT 50
+      `);
+
+      // We can do confluence factor aggregation in JS
+      const confluenceMap = {};
+      const resolved = await db.query(`SELECT confluence_factors, outcome FROM ai_verdicts WHERE outcome != 'PENDING'`);
+      for (const row of resolved.rows) {
+        if (!row.confluence_factors) continue;
+        for (const factor of row.confluence_factors) {
+          if (!confluenceMap[factor]) confluenceMap[factor] = { total: 0, wins: 0 };
+          confluenceMap[factor].total++;
+          if (row.outcome === 'WIN' || row.outcome === 'CORRECT_WAIT') {
+            confluenceMap[factor].wins++;
+          }
+        }
+      }
+
+      res.json({
+        buckets: bucketRes.rows,
+        pairs: pairRes.rows,
+        wait_accuracy: waitRes.rows[0],
+        recent_verdicts: recentRes.rows,
+        confluence_stats: confluenceMap
+      });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.get('/api/zones/:symbol/:timeframe', async (req, res) => {
     const zones = await detector.detect(req.params.symbol, req.params.timeframe);
     res.json(zones || {});

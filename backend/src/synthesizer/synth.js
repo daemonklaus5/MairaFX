@@ -1,4 +1,5 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const db = require('../db');
 
 class Synthesizer {
   constructor(technicalLane, flowLane, narrativeLane, macroLane) {
@@ -227,7 +228,10 @@ Output ONLY strict JSON with EXACTLY these keys:
   "weakest_point": "<One line on the weakest part of this read — what you are least confident about>",
   "overview": "<Summarize what you believe is happening right now and what could potentially happen in the near future. MUST cite key price levels and current price — 3-4 sentences>",
   "overview_confidence_score": <integer 0-100 representing your confidence in the directional assumption>,
-  "risk_sizing": "<e.g. 'Risk 35 pips (1% = 0.28 Lots per $10k)' or N/A if WAIT>"
+  "risk_sizing": "<e.g. 'Risk 35 pips (1% = 0.28 Lots per $10k)' or N/A if WAIT>",
+  "entry_price_num": <float or null if WAIT>,
+  "invalidation_price_num": <float or null if WAIT>,
+  "target_price_num": <float or null if WAIT>
 }
 
 Additional rules:
@@ -299,6 +303,9 @@ ${JSON.stringify(ictContext, null, 2)}
         weakest_point:         jsonResult.weakest_point         || null,
         overview:              jsonResult.overview              || null,
         overview_confidence_score: jsonResult.overview_confidence_score ?? null,
+        entry_price_num: jsonResult.entry_price_num ?? null,
+        invalidation_price_num: jsonResult.invalidation_price_num ?? null,
+        target_price_num: jsonResult.target_price_num ?? null,
 
         // Legacy/compatible fields
         reasoning:   jsonResult.thesis || jsonResult.reasoning  || 'AI narrative unavailable.',
@@ -314,6 +321,41 @@ ${JSON.stringify(ictContext, null, 2)}
         news:        ictContext.upcoming_high_impact_news,
         liquidity:   zones?.liquidity ?? null,
       };
+
+      // Write-on-Verdict Logic
+      if (result.verdict) {
+        try {
+          const confluenceFactors = [
+            result.market_structure_read ? "Market Structure" : null,
+            result.liquidity_context ? "Liquidity Context" : null,
+            result.session_timing ? "Session Timing" : null,
+            result.confluence_check ? "Indicator Confluence" : null
+          ].filter(Boolean);
+
+          await db.query(
+            `INSERT INTO ai_verdicts (
+              timestamp, pair, timeframe, verdict, conviction_score,
+              entry_price, invalidation_price, target_price,
+              confluence_factors, full_json_snapshot, full_ai_output
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+            [
+              new Date(now).toISOString(),
+              symbol,
+              timeframe,
+              result.verdict,
+              result.overview_confidence_score || 0,
+              result.entry_price_num,
+              result.invalidation_price_num,
+              result.target_price_num,
+              JSON.stringify(confluenceFactors),
+              JSON.stringify(ictContext),
+              JSON.stringify(jsonResult)
+            ]
+          );
+        } catch (dbErr) {
+          console.error('Failed to log AI verdict to DB:', dbErr.message);
+        }
+      }
 
       this.cache.set(cacheKey, { time: now, result });
       return { ...result, cached: false };

@@ -46,6 +46,27 @@ async function runMigrations() {
         is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+
+      CREATE TABLE IF NOT EXISTS ai_verdicts (
+        verdict_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        timestamp TIMESTAMPTZ NOT NULL,
+        pair VARCHAR(20) NOT NULL,
+        timeframe VARCHAR(10) NOT NULL,
+        verdict VARCHAR(10) NOT NULL,
+        conviction_score INTEGER,
+        entry_price NUMERIC,
+        invalidation_price NUMERIC,
+        target_price NUMERIC,
+        confluence_factors JSONB,
+        full_json_snapshot JSONB,
+        full_ai_output TEXT,
+        outcome VARCHAR(20) DEFAULT 'PENDING',
+        outcome_price NUMERIC,
+        outcome_timestamp TIMESTAMPTZ
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_ai_verdicts_pair_pending ON ai_verdicts(pair) WHERE outcome = 'PENDING';
+      CREATE INDEX IF NOT EXISTS idx_ai_verdicts_timestamp ON ai_verdicts(timestamp DESC);
     `);
     
     
