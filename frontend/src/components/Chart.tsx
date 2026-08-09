@@ -62,9 +62,7 @@ export function Chart({ symbol, timeframe, timezone }: ChartProps) {
           'header_symbol_search',
           'header_compare',
         ],
-        enabled_features: [
-          'hide_left_toolbar_by_default',
-        ],
+        enabled_features: [],
         overrides: {
           'mainSeriesProperties.candleStyle.upColor': '#26a69a',
           'mainSeriesProperties.candleStyle.downColor': '#ef5350',
