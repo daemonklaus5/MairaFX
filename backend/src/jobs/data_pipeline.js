@@ -4,22 +4,8 @@ require('dotenv').config();
 const API_KEY = process.env.OANDA_API_KEY;
 const BASE_URL = process.env.OANDA_BASE_URL || 'https://api-fxpractice.oanda.com';
 
-const tfMapToOanda = {
-  '15m': 'M15',
-  '1H': 'H1',
-  '4H': 'H4',
-  '1D': 'D'
-};
-
-const tfMapFromOanda = {
-  'M15': '15m',
-  'H1': '1H',
-  'H4': '4H',
-  'D': '1D'
-};
-
 const PAIRS = ['EUR_USD', 'GBP_USD', 'USD_JPY', 'USD_CHF'];
-const TIMEFRAMES = ['1H', '4H', '15m'];
+const TIMEFRAMES = ['H1', 'H4', 'M15'];
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -68,7 +54,7 @@ async function runHistoricalBackfill(pairs = PAIRS, timeframes = TIMEFRAMES) {
 
   for (const pair of pairs) {
     for (const tf of timeframes) {
-      const oandaTf = tfMapToOanda[tf];
+      const oandaTf = tf;
       let toParam = new Date().toISOString();
       let totalInserted = 0;
       let keepFetching = true;
@@ -134,7 +120,7 @@ async function runDailyUpdate() {
   const groups = groupsRes.rows;
 
   for (const { symbol, timeframe } of groups) {
-    const oandaTf = tfMapToOanda[timeframe];
+    const oandaTf = timeframe;
     if (!oandaTf) continue;
 
     // Get the latest timestamp for this group
@@ -183,10 +169,10 @@ async function runDailyUpdate() {
 async function detectGaps(symbol, timeframe) {
   // Define expected max gap size based on timeframe (excluding weekends)
   let expectedMaxGapMs = 0;
-  if (timeframe === '15m') expectedMaxGapMs = 15 * 60 * 1000 * 2; // 30m max acceptable (some illiquid periods)
-  if (timeframe === '1H') expectedMaxGapMs = 60 * 60 * 1000 * 2; // 2h max acceptable
-  if (timeframe === '4H') expectedMaxGapMs = 4 * 60 * 60 * 1000 * 2; // 8h max acceptable
-  if (timeframe === '1D') expectedMaxGapMs = 24 * 60 * 60 * 1000 * 2;
+  if (timeframe === 'M15') expectedMaxGapMs = 15 * 60 * 1000 * 2; // 30m max acceptable (some illiquid periods)
+  if (timeframe === 'H1') expectedMaxGapMs = 60 * 60 * 1000 * 2; // 2h max acceptable
+  if (timeframe === 'H4') expectedMaxGapMs = 4 * 60 * 60 * 1000 * 2; // 8h max acceptable
+  if (timeframe === 'D') expectedMaxGapMs = 24 * 60 * 60 * 1000 * 2;
 
   if (expectedMaxGapMs === 0) return [];
 
@@ -242,11 +228,11 @@ async function enforceRetention() {
   // Only prune M15 and smaller (we want to keep H1, H4, D indefinitely)
   try {
     const res = await db.query(
-      `DELETE FROM candles WHERE timeframe = '15m' AND timestamp < $1`,
+      `DELETE FROM candles WHERE timeframe = 'M15' AND timestamp < $1`,
       [cutoffIso]
     );
     if (res.rowCount > 0) {
-      console.log(`[DataPipeline] Pruned ${res.rowCount} old 15m candles to save storage.`);
+      console.log(`[DataPipeline] Pruned ${res.rowCount} old M15 candles to save storage.`);
     }
   } catch (err) {
     console.error(`[DataPipeline] Failed to enforce retention:`, err.message);

@@ -38,7 +38,7 @@ module.exports = function(engine) {
           SELECT symbol, close, timestamp,
                  ROW_NUMBER() OVER(PARTITION BY symbol ORDER BY timestamp DESC) as rn
           FROM candles
-          WHERE timeframe = '1H'
+          WHERE timeframe = 'H1'
         ),
         CurrentPrices AS (
           SELECT symbol, close as current_price FROM RankedCandles WHERE rn = 1

@@ -14,12 +14,12 @@ function toTvSymbol(symbol: string): string {
 // Map our timeframes to TradingView's interval format
 function toTvInterval(timeframe: string): string {
   const map: Record<string, string> = {
-    '1m': '1',
-    '5m': '5',
-    '15m': '15',
-    '1H': '60',
-    '4H': '240',
-    '1D': 'D',
+    'M1': '1',
+    'M5': '5',
+    'M15': '15',
+    'H1': '60',
+    'H4': '240',
+    'D': 'D',
   };
   return map[timeframe] || '15';
 }

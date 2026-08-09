@@ -2,10 +2,10 @@ const db = require('../db');
 const cron = require('node-cron');
 
 const TF_MINUTES = {
-  '15m': 15,
-  '1H': 60,
-  '4H': 240,
-  '1D': 1440
+  'M15': 15,
+  'H1': 60,
+  'H4': 240,
+  'D': 1440
 };
 
 class CandleBuilder {

@@ -19,7 +19,7 @@ class MacroLane {
       Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('Yahoo timeout')), ms))]);
 
     try {
-      yahooFinance.suppressNotices(['yahooSurvey']);
+      // suppressNotices is no longer valid in v4
 
       const [dxy, spx] = await Promise.all([
         withTimeout(yahooFinance.quote('DX-Y.NYB'), 6000).catch(() => null),

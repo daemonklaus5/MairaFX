@@ -31,7 +31,7 @@ interface LanesState {
 
 export default function App() {
   const [symbol, setSymbol] = useState('EUR_USD');
-  const [timeframe, setTimeframe] = useState('15m');
+  const [timeframe, setTimeframe] = useState('M15');
   const [laneData, setLaneData] = useState<LanesState | null>(null);
   const [activeTab, setActiveTab] = useState<'chart' | 'analysis' | 'backtest'>('chart');
   const [timezone, setTimezone] = useState<'UTC' | 'IST'>('UTC');
@@ -48,7 +48,8 @@ export default function App() {
     p.replace('_', '').toLowerCase().includes(searchQuery.replace('_', '').toLowerCase())
   );
 
-  const timeframes = ['1m', '5m', '15m', '1H', '4H', '1D'];
+  const timeframes = ['M1', 'M5', 'M15', 'H1', 'H4', 'D'];
+  const displayTf = (tf: string) => tf.startsWith('M') ? tf.substring(1) + 'm' : tf === 'D' ? '1D' : tf;
 
   useEffect(() => {
     setLaneData(null);
@@ -178,7 +179,7 @@ export default function App() {
                         timeframe === tf ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-200'
                       }`}
                     >
-                      {tf}
+                      {displayTf(tf)}
                     </button>
                   ))}
                 </div>

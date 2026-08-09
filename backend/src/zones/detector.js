@@ -271,19 +271,25 @@ class ZoneDetector {
     };
   }
 
-  async detect(symbol, timeframe) {
+  async detect(symbol, timeframe, customCandles = null) {
     try {
-      const result = await db.query(
-        `SELECT timestamp, open, high, low, close, volume 
-         FROM candles 
-         WHERE symbol = $1 AND timeframe = $2 
-         ORDER BY timestamp DESC 
-         LIMIT 500`,
-        [symbol, timeframe]
-      );
+      let candles = customCandles;
+      
+      if (!candles) {
+        const result = await db.query(
+          `SELECT timestamp, open, high, low, close, volume 
+           FROM candles 
+           WHERE symbol = $1 AND timeframe = $2 
+           ORDER BY timestamp DESC 
+           LIMIT 500`,
+          [symbol, timeframe]
+        );
 
-      if (result.rows.length < 50) return null;
-      const candles = result.rows.reverse(); // oldest → newest
+        if (result.rows.length < 50) return null;
+        candles = result.rows.reverse(); // oldest → newest
+      } else if (candles.length < 50) {
+        return null;
+      }
 
       const currentPrice = parseFloat(candles[candles.length - 1].close);
       const { highs, lows } = this.findPivots(candles);

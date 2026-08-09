@@ -54,7 +54,7 @@ export function useMarketSocket(symbol: string, timeframe: string) {
         if (data.type === 'TICK') {
           const tickData = data.data || data;
           if (tickData.symbol === symbol) {
-            const TF_MINUTES: Record<string, number> = { '15m': 15, '1H': 60, '4H': 240, '1D': 1440 };
+            const TF_MINUTES: Record<string, number> = { 'M15': 15, 'H1': 60, 'H4': 240, 'D': 1440 };
             const minutes = TF_MINUTES[timeframe] || 15;
           const msPerTf = minutes * 60 * 1000;
           
@@ -73,9 +73,7 @@ export function useMarketSocket(symbol: string, timeframe: string) {
             });
           }
         } else if (data.type === 'INDICATORS' && data.data.symbol === symbol) {
-          const tfMap: Record<string, string> = { '15m': 'M15', '1H': 'H1', '4H': 'H4', '1D': 'D' };
-          const mappedTf = tfMap[timeframe] || timeframe;
-          if (data.data.timeframe === mappedTf) {
+          if (data.data.timeframe === timeframe) {
             setIndicators(data.data);
           }
         }

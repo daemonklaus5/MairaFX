@@ -1,54 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import './BacktestPanel.css'; // Optional if we want CSS, but I'll use inline styles or existing tokens
+import './BacktestPanel.css';
 
-interface BucketStat {
-  bucket: string;
-  total: number;
-  wins: number;
-}
-
-interface PairStat {
-  pair: string;
-  total: number;
-  wins: number;
-}
-
-interface WaitAccuracy {
-  total: number;
-  correct: number;
-}
-
-interface ConfluenceStat {
-  [factor: string]: { total: number; wins: number };
-}
-
+interface BucketStat { bucket: string; total: number; wins: number; }
+interface PairStat { pair: string; total: number; wins: number; }
+interface WaitAccuracy { total: number; correct: number; }
+interface ConfluenceStat { [factor: string]: { total: number; wins: number }; }
 interface Verdict {
-  verdict_id: string;
-  timestamp: string;
-  pair: string;
-  timeframe: string;
-  verdict: string;
-  conviction_score: number;
-  outcome: string;
-  entry_price?: number;
-  target_price?: number;
-  invalidation_price?: number;
+  verdict_id: string; timestamp: string; pair: string; timeframe: string;
+  verdict: string; conviction_score: number; outcome: string;
+  entry_price?: number; target_price?: number; invalidation_price?: number;
 }
 
 interface BacktestStats {
-  buckets: BucketStat[];
-  pairs: PairStat[];
-  wait_accuracy: WaitAccuracy;
-  recent_verdicts: Verdict[];
-  confluence_stats: ConfluenceStat;
+  buckets: BucketStat[]; pairs: PairStat[]; wait_accuracy: WaitAccuracy;
+  recent_verdicts: Verdict[]; confluence_stats: ConfluenceStat;
 }
 
 interface PipelineStatus {
-  symbol: string;
-  timeframe: string;
-  total_rows: string;
-  earliest: string;
-  latest: string;
+  symbol: string; timeframe: string; total_rows: string;
+  earliest: string; latest: string;
 }
 
 const BacktestPanel: React.FC = () => {
@@ -57,29 +27,73 @@ const BacktestPanel: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [backfillTriggered, setBackfillTriggered] = useState(false);
 
+  // Backtest states
+  const [runs, setRuns] = useState<string[]>([]);
+  const [selectedRun, setSelectedRun] = useState<string>('');
+  const [showModal, setShowModal] = useState(false);
+  const [modalConfig, setModalConfig] = useState({
+    pairs: 'EUR_USD, GBP_USD, USD_JPY',
+    timeframe: 'H1'
+  });
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const [progress, setProgress] = useState<any>(null);
+
+  const fetchStats = (runId: string) => {
+    setLoading(true);
+    const url = runId ? `/api/backtest/stats?runId=${encodeURIComponent(runId)}` : '/api/backtest/stats';
+    fetch(url)
+      .then(res => res.json())
+      .then(setStats)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  };
+
   useEffect(() => {
-    Promise.all([
-      fetch('/api/backtest/stats').then(res => res.json()),
-      fetch('/api/data-pipeline/status').then(res => res.json())
-    ])
-    .then(([statsData, pipelineData]) => {
-      setStats(statsData);
-      setPipelineStatus(pipelineData);
-      setLoading(false);
-    })
-    .catch(err => {
-      console.error('Failed to fetch data:', err);
-      setLoading(false);
-    });
+    fetch('/api/data-pipeline/status').then(res => res.json()).then(setPipelineStatus);
+    fetch('/api/backtest/runs').then(res => res.json()).then(setRuns);
+    fetchStats(selectedRun);
   }, []);
+
+  useEffect(() => {
+    fetchStats(selectedRun);
+  }, [selectedRun]);
+
+  useEffect(() => {
+    if (!activeRunId) return;
+    const interval = setInterval(() => {
+      fetch(`/api/backtest/progress/${encodeURIComponent(activeRunId)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'COMPLETED' || data.status === 'FAILED') {
+            setActiveRunId(null);
+            fetch('/api/backtest/runs').then(res => res.json()).then(setRuns);
+            setSelectedRun(activeRunId); // Auto-switch to the newly completed run
+          }
+          setProgress(data);
+        });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [activeRunId]);
 
   const triggerBackfill = () => {
     setBackfillTriggered(true);
-    fetch('/api/data-pipeline/trigger-backfill', { method: 'POST' })
-      .catch(console.error);
+    fetch('/api/data-pipeline/trigger-backfill', { method: 'POST' }).catch(console.error);
   };
 
-  if (loading) {
+  const handleRunBacktest = async () => {
+    setShowModal(false);
+    setProgress({ status: 'STARTING', current: 0, total: 100 });
+    const pairsArr = modalConfig.pairs.split(',').map(p => p.trim()).filter(Boolean);
+    const res = await fetch('/api/backtest/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...modalConfig, pairs: pairsArr })
+    });
+    const data = await res.json();
+    if (data.runId) setActiveRunId(data.runId);
+  };
+
+  if (loading && !stats) {
     return (
       <div className="backtest-container loading-state">
         <div className="pulse-loader"></div>
@@ -103,10 +117,59 @@ const BacktestPanel: React.FC = () => {
   };
 
   return (
-    <div className="backtest-container">
-      <header className="backtest-header">
-        <h2>AI Performance Ledger</h2>
-        <p>Institutional-grade outcome tracking and backtested win-rates.</p>
+    <div className="backtest-container" style={{ position: 'relative' }}>
+      
+      {/* Progress Overlay */}
+      {activeRunId && progress && (
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <h2 style={{ color: '#fff', marginBottom: '1rem' }}>Running Backtest...</h2>
+          <div style={{ width: '50%', backgroundColor: '#333', height: '20px', borderRadius: '10px', overflow: 'hidden' }}>
+            <div style={{ width: `${(progress.current / Math.max(progress.total, 1)) * 100}%`, height: '100%', backgroundColor: '#00e676', transition: 'width 0.5s' }} />
+          </div>
+          <p style={{ color: '#aaa', marginTop: '1rem' }}>{progress.current.toLocaleString()} / {progress.total.toLocaleString()} Candles Processed</p>
+          <p style={{ color: '#fff', marginTop: '0.5rem' }}>{progress.status}</p>
+        </div>
+      )}
+
+      {/* Modal */}
+      {showModal && (
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 90, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="glass-panel" style={{ width: '400px', padding: '2rem' }}>
+            <h3>Configure Backtest</h3>
+            <p className="helper-text" style={{ marginBottom: '1rem' }}>Run the mechanical SMC engine offline.</p>
+            
+            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff' }}>Pairs (comma separated)</label>
+            <input type="text" value={modalConfig.pairs} onChange={e => setModalConfig({...modalConfig, pairs: e.target.value})} style={{ width: '100%', padding: '0.5rem', marginBottom: '1rem', background: '#222', color: '#fff', border: '1px solid #444' }} />
+            
+            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff' }}>Timeframe</label>
+            <select value={modalConfig.timeframe} onChange={e => setModalConfig({...modalConfig, timeframe: e.target.value})} style={{ width: '100%', padding: '0.5rem', marginBottom: '1.5rem', background: '#222', color: '#fff', border: '1px solid #444' }}>
+              <option value="M15">M15</option>
+              <option value="H1">H1</option>
+              <option value="H4">H4</option>
+              <option value="D">D</option>
+            </select>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+              <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleRunBacktest}>Start Engine</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <header className="backtest-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h2>AI Performance Ledger</h2>
+          <p>Institutional-grade outcome tracking and backtested win-rates.</p>
+        </div>
+        <div>
+          <select value={selectedRun} onChange={(e) => setSelectedRun(e.target.value)} style={{ padding: '0.5rem', background: '#222', color: '#fff', border: '1px solid #444', borderRadius: '4px' }}>
+            <option value="">Live Tracking (Forward Test)</option>
+            {runs.map(r => (
+              <option key={r} value={r}>{r}</option>
+            ))}
+          </select>
+        </div>
       </header>
 
       <div className="stats-grid">
@@ -238,7 +301,14 @@ const BacktestPanel: React.FC = () => {
             <h3>Data Lake Pipeline</h3>
             <p className="helper-text">Historical OHLCV data synchronized with OANDA for offline quant backtesting.</p>
           </div>
-          <div className="pipeline-actions">
+          <div className="pipeline-actions" style={{ display: 'flex', gap: '0.5rem' }}>
+            <button 
+              className="btn btn-primary"
+              onClick={() => setShowModal(true)}
+              style={{ backgroundColor: '#ff9800', borderColor: '#ff9800' }}
+            >
+              Run Offline Backtest
+            </button>
             <button 
               className="btn btn-primary"
               onClick={triggerBackfill}

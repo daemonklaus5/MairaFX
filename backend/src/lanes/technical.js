@@ -20,8 +20,8 @@ class TechnicalLane {
     return { session: 'Asian', killZone: false };
   }
 
-  evaluate(symbol, timeframe, currentPrice, marketStructure = null) {
-    const indicators = this.engine.getLatest(symbol, timeframe);
+  evaluate(symbol, timeframe, currentPrice, marketStructure = null, customIndicators = null) {
+    const indicators = customIndicators || this.engine.getLatest(symbol, timeframe);
     if (!indicators) {
       return { bias: 'mixed', tier: 'low', score: 0, basis: 'No indicator data yet' };
     }

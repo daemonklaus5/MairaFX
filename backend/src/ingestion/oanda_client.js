@@ -103,7 +103,6 @@ class OandaClient {
       const data = await response.json();
       if (!data.candles) return;
 
-      const internalTf = tfMap[tf];
       const placeholders = [];
       const values = [];
       let i = 1;
@@ -114,7 +113,7 @@ class OandaClient {
         placeholders.push(`($${i++}, $${i++}, $${i++}, $${i++}, $${i++}, $${i++}, $${i++}, $${i++})`);
         values.push(
           symbol,
-          internalTf,
+          tf,
           candle.time,
           parseFloat(candle.bid.o),
           parseFloat(candle.bid.h),
@@ -137,7 +136,7 @@ class OandaClient {
         `;
         await db.query(query, values);
       }
-      console.log(`Backfilled ${data.candles.length} candles for ${symbol} ${internalTf}`);
+      console.log(`Backfilled ${data.candles.length} candles for ${symbol} ${tf}`);
     } catch (err) {
       console.error(`Failed to backfill ${symbol} ${tf}:`, err.message);
     }

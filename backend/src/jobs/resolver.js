@@ -4,13 +4,6 @@ require('dotenv').config();
 const API_KEY = process.env.OANDA_API_KEY;
 const BASE_URL = process.env.OANDA_BASE_URL || 'https://api-fxpractice.oanda.com';
 
-const tfMapToOanda = {
-  '15m': 'M15',
-  '1H': 'H1',
-  '4H': 'H4',
-  '1D': 'D'
-};
-
 async function resolvePendingVerdicts() {
   console.log('[Resolver] Starting batched outcome resolver...');
   let totalApiCalls = 0;
@@ -32,7 +25,7 @@ async function resolvePendingVerdicts() {
 
     for (const group of groups) {
       const { pair, timeframe, earliest_time } = group;
-      const oandaTf = tfMapToOanda[timeframe] || 'M15';
+      const oandaTf = timeframe;
 
       // Fetch all verdicts for this group
       const verdictsRes = await db.query(

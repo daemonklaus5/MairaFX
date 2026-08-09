@@ -14,6 +14,7 @@ const FlowLane = require('./lanes/flow');
 const NarrativeLane = require('./lanes/narrative');
 const MacroLane = require('./lanes/macro');
 const Synthesizer = require('./synthesizer/synth');
+const backtester = require('./jobs/backtester');
 const runMigrations = require('./db/migrations');
 const cotJob = require('./cot/job');
 const AlertManager = require('./alerts/manager');
@@ -103,6 +104,17 @@ async function bootstrap() {
   app.get('/api/backtest/stats', async (req, res) => {
     try {
       const db = require('./db');
+      const runId = req.query.runId;
+      
+      let whereClause = `WHERE outcome != 'PENDING'`;
+      const params = [];
+      
+      if (runId) {
+        whereClause += ` AND run_id = $1`;
+        params.push(runId);
+      } else {
+        whereClause += ` AND source = 'live'`;
+      }
       
       const bucketRes = await db.query(`
         SELECT 
@@ -115,32 +127,37 @@ async function bootstrap() {
           COUNT(*) as total,
           SUM(CASE WHEN outcome IN ('WIN', 'CORRECT_WAIT') THEN 1 ELSE 0 END) as wins
         FROM ai_verdicts
-        WHERE outcome != 'PENDING'
+        ${whereClause}
         GROUP BY bucket
-      `);
+      `, params);
 
       const pairRes = await db.query(`
         SELECT pair, COUNT(*) as total, SUM(CASE WHEN outcome IN ('WIN', 'CORRECT_WAIT') THEN 1 ELSE 0 END) as wins
         FROM ai_verdicts 
-        WHERE outcome != 'PENDING' 
+        ${whereClause}
         GROUP BY pair
-      `);
+      `, params);
+
+      let waitWhereClause = `WHERE verdict = 'WAIT' AND outcome != 'PENDING'`;
+      if (runId) waitWhereClause += ` AND run_id = $1`;
+      else waitWhereClause += ` AND source = 'live'`;
 
       const waitRes = await db.query(`
         SELECT COUNT(*) as total, SUM(CASE WHEN outcome = 'CORRECT_WAIT' THEN 1 ELSE 0 END) as correct
         FROM ai_verdicts 
-        WHERE verdict = 'WAIT' AND outcome != 'PENDING'
-      `);
+        ${waitWhereClause}
+      `, params);
 
       const recentRes = await db.query(`
         SELECT * FROM ai_verdicts 
+        ${whereClause}
         ORDER BY timestamp DESC 
         LIMIT 50
-      `);
+      `, params);
 
       // We can do confluence factor aggregation in JS
       const confluenceMap = {};
-      const resolved = await db.query(`SELECT confluence_factors, outcome FROM ai_verdicts WHERE outcome != 'PENDING'`);
+      const resolved = await db.query(`SELECT confluence_factors, outcome FROM ai_verdicts ${whereClause}`, params);
       for (const row of resolved.rows) {
         if (!row.confluence_factors) continue;
         for (const factor of row.confluence_factors) {
@@ -368,19 +385,48 @@ async function bootstrap() {
       });
     }
   });
+  // --- Backtester Endpoints ---
+  app.post('/api/backtest/run', async (req, res) => {
+    try {
+      const { pairs, timeframe, startDate, endDate, useAi } = req.body;
+      const runId = `Backtest — ${timeframe} — ${new Date().toISOString().slice(0, 10)} ${Date.now().toString().slice(-4)}`;
+      
+      // Fire and forget
+      backtester.runBacktest(runId, pairs, timeframe, detector, synth);
+      
+      res.json({ success: true, runId });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/backtest/progress/:runId', (req, res) => {
+    const progress = backtester.getRunProgress(req.params.runId);
+    if (!progress) return res.status(404).json({ error: 'Run not found' });
+    res.json(progress);
+  });
+
+  app.get('/api/backtest/runs', async (req, res) => {
+    try {
+      const runs = await backtester.getPastRuns();
+      res.json(runs);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
 
   app.post('/api/analyze/:symbol/:timeframe', async (req, res) => {
     try {
       const { symbol, timeframe } = req.params;
-      // DB stores candles as '15m', '1H', '4H', '1D' — matches URL params directly
+      // DB stores candles as 'M15', 'H1', 'H4', 'D' — matches URL params directly
       const zones = await detector.detect(symbol, timeframe);
       const latestInds = engine.getLatest(symbol, timeframe);
       const price = req.body?.price || (latestInds ? latestInds.ema9 : 0) || (zones?.currentPrice ?? 0);
 
       // Fetch MTF Zones for alignment
-      let mtfZones = { '1D': null, '4H': null };
-      if (timeframe !== '1D') mtfZones['1D'] = await detector.detect(symbol, '1D');
-      if (timeframe !== '4H' && timeframe !== '1D') mtfZones['4H'] = await detector.detect(symbol, '4H');
+      let mtfZones = { 'D': null, 'H4': null };
+      if (timeframe !== 'D') mtfZones['D'] = await detector.detect(symbol, 'D');
+      if (timeframe !== 'H4' && timeframe !== 'D') mtfZones['H4'] = await detector.detect(symbol, 'H4');
 
       // Fetch Economic Calendar for today
       const apiKey = process.env.FINNHUB_API_KEY;

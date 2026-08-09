@@ -36,9 +36,9 @@ class FinnhubClient {
   async backfillAll() {
     // We map our timeframes to Yahoo Finance intervals
     const resolutionMap = {
-      '15m': '15m',
-      '1H': '60m',
-      '1D': '1d'
+      'M15': '15m',
+      'H1': '60m',
+      'D': '1d'
     };
 
     const to = new Date();
@@ -62,7 +62,7 @@ class FinnhubClient {
             for (const q of result.quotes) {
               if (q.open === null || q.close === null) continue;
               
-              const minutes = tf === '15m' || tf === 'M15' ? 15 : tf === '1H' || tf === 'H1' ? 60 : tf === '4H' || tf === 'H4' ? 240 : 1440;
+              const minutes = tf === 'M15' ? 15 : tf === 'H1' ? 60 : tf === 'H4' ? 240 : 1440;
               const msPerTf = minutes * 60 * 1000;
               const roundedTimeMs = Math.floor(new Date(q.date).getTime() / msPerTf) * msPerTf;
               

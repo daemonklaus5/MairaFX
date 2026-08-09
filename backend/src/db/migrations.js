@@ -62,11 +62,30 @@ async function runMigrations() {
         full_ai_output TEXT,
         outcome VARCHAR(20) DEFAULT 'PENDING',
         outcome_price NUMERIC,
-        outcome_timestamp TIMESTAMPTZ
+        outcome_timestamp TIMESTAMPTZ,
+        source VARCHAR(20) DEFAULT 'live',
+        run_id VARCHAR(100)
       );
 
       CREATE INDEX IF NOT EXISTS idx_ai_verdicts_pair_pending ON ai_verdicts(pair) WHERE outcome = 'PENDING';
       CREATE INDEX IF NOT EXISTS idx_ai_verdicts_timestamp ON ai_verdicts(timestamp DESC);
+
+      ALTER TABLE candles DROP CONSTRAINT IF EXISTS chk_canonical_tf;
+      ALTER TABLE candles ADD CONSTRAINT chk_canonical_tf CHECK (timeframe IN ('M5', 'M15', 'H1', 'H4', 'D'));
+
+      ALTER TABLE ai_verdicts DROP CONSTRAINT IF EXISTS chk_canonical_tf_ai;
+      ALTER TABLE ai_verdicts ADD CONSTRAINT chk_canonical_tf_ai CHECK (timeframe IN ('M5', 'M15', 'H1', 'H4', 'D'));
+
+      -- Add new columns safely
+      DO $$
+      BEGIN
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ai_verdicts' AND column_name='source') THEN
+              ALTER TABLE ai_verdicts ADD COLUMN source VARCHAR(20) DEFAULT 'live';
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ai_verdicts' AND column_name='run_id') THEN
+              ALTER TABLE ai_verdicts ADD COLUMN run_id VARCHAR(100);
+          END IF;
+      END $$;
     `);
     
     

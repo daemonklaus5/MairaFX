@@ -17,7 +17,7 @@ class Synthesizer {
    * All lanes are now async (FlowLane fetches live rates, NarrativeLane fetches news).
    * Each lane has an 8s hard timeout — a hung lane falls back to neutral, never blocks.
    */
-  async evaluateRuleBased(symbol, timeframe, currentPrice, zones) {
+  async evaluateRuleBased(symbol, timeframe, currentPrice, zones, customIndicators = null) {
     const marketStructure = zones?.marketStructure ?? null;
     const LANE_FALLBACK = { bias: 'mixed', tier: 'low', score: 0, basis: 'Lane unavailable' };
 
@@ -29,7 +29,7 @@ class Synthesizer {
 
     // Run all four lanes in parallel — each settles independently within 8s
     const [tRes, fRes, nRes, mRes] = await Promise.allSettled([
-      withLaneTimeout(Promise.resolve().then(() => this.lanes.technical.evaluate(symbol, timeframe, currentPrice, marketStructure)), 'TechnicalLane'),
+      withLaneTimeout(Promise.resolve().then(() => this.lanes.technical.evaluate(symbol, timeframe, currentPrice, marketStructure, customIndicators)), 'TechnicalLane'),
       withLaneTimeout(this.lanes.flow.evaluate(symbol),      'FlowLane'),
       withLaneTimeout(this.lanes.narrative.evaluate(symbol), 'NarrativeLane'),
       withLaneTimeout(this.lanes.macro.evaluate(symbol),     'MacroLane'),
@@ -81,8 +81,8 @@ class Synthesizer {
     // 1. Multi-Timeframe Alignment
     if (mtfZones) {
       ctx.mtf_alignment = {
-        daily_trend: mtfZones['1D']?.marketStructure?.trend || 'unknown',
-        h4_trend:    mtfZones['4H']?.marketStructure?.trend || 'unknown',
+        daily_trend: mtfZones['D']?.marketStructure?.trend || 'unknown',
+        h4_trend:    mtfZones['H4']?.marketStructure?.trend || 'unknown',
       };
     }
 
