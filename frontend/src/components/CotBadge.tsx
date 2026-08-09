@@ -33,7 +33,7 @@ export function CotBadge({ symbol }: { symbol: string }) {
   const isLong = data.netLongPct >= 0;
 
   return (
-    <div className="bg-panel rounded-lg border border-gray-800 p-4 shadow-lg w-full flex flex-col gap-2">
+    <div className="glass-card p-4 w-full flex flex-col flex flex-col gap-2">
       <h3 className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
         <Building2 className="w-3 h-3 opacity-70" />
         Institutional COT

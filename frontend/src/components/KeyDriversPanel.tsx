@@ -51,7 +51,7 @@ export function KeyDriversPanel({ symbol }: { symbol: string }) {
   }, [symbol]);
 
   return (
-    <div className="bg-panel rounded-lg border border-gray-800 p-4 shadow-lg w-full">
+    <div className="glass-card p-4 w-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400">

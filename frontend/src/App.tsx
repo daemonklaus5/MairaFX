@@ -64,9 +64,9 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-darker text-gray-200 overflow-hidden">
-      {/* ── Sticky Header ── */}
-      <header className="shrink-0 z-50 bg-darker/95 backdrop-blur-md border-b border-gray-800 px-3 py-2 md:px-6 md:py-3">
+    <div className="h-screen flex flex-col text-gray-200 overflow-hidden bg-transparent">
+      {/* ── Floating Header ── */}
+      <header className="shrink-0 z-50 glass-card mx-2 md:mx-4 mt-2 md:mt-4 px-3 py-2 md:px-6 md:py-3 mb-2 md:mb-4">
         <div className="flex items-center justify-between gap-2 h-10 relative">
           
           {/* LEFT: Logo */}
@@ -78,7 +78,7 @@ export default function App() {
           </div>
 
           {/* CENTER: Fixed Toggle */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex bg-gray-900 rounded-md p-0.5 border border-gray-700 shadow-sm z-20">
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex bg-black/40 rounded-md p-1 border border-gray-700/50 shadow-sm z-20 backdrop-blur-md">
             <button
               onClick={() => setActiveTab('chart')}
               className={`px-4 py-1.5 rounded text-xs font-bold transition-colors ${
@@ -209,7 +209,7 @@ export default function App() {
 
 
         {/* --- ANALYSIS TAB --- */}
-        <div className={`w-full h-full p-4 md:p-6 overflow-y-auto bg-darker ${activeTab === 'analysis' ? 'block' : 'hidden'}`}>
+        <div className={`w-full h-full p-4 md:p-6 overflow-y-auto bg-transparent ${activeTab === 'analysis' ? 'block' : 'hidden'}`}>
           <div className="max-w-7xl mx-auto flex flex-col gap-4">
             
             {/* Top Banner: Rule-Based Lanes */}
@@ -244,7 +244,7 @@ export default function App() {
         </div>
 
         {/* --- BACKTEST TAB --- */}
-        <div className={`w-full h-full overflow-y-auto bg-darker ${activeTab === 'backtest' ? 'block' : 'hidden'}`}>
+        <div className={`w-full h-full overflow-y-auto bg-transparent ${activeTab === 'backtest' ? 'block' : 'hidden'}`}>
           <BacktestPanel />
         </div>
 

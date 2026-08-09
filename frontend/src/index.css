@@ -1,21 +1,40 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #00d1b2;
-  --color-dark: #0b0e14;
-  --color-darker: #060809;
-  --color-panel: #151924;
-  --color-text: #d1d5db;
-  --color-bear: #ef4444;
-  --color-bull: #10b981;
+  --color-primary: #00e676;
+  --color-dark: #0a0d14;
+  --color-darker: #050608;
+  --color-panel: rgba(15, 20, 30, 0.4);
+  --color-text: #e5e7eb;
+  --color-bear: #ff1744;
+  --color-bull: #00e676;
 }
 
 body {
   margin: 0;
+  /* Deep mesh gradient background */
   background-color: var(--color-darker);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(0, 230, 118, 0.03) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(0, 176, 255, 0.03) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(255, 23, 68, 0.02) 0px, transparent 50%);
+  background-attachment: fixed;
   color: var(--color-text);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Institutional Glassmorphism Class */
+.glass-card {
+  background: var(--color-panel);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
 }
 
 /* Custom scrollbar for terminal feel */

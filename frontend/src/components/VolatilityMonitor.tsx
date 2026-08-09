@@ -17,7 +17,7 @@ export function VolatilityMonitor({ symbol, timeframe }: { symbol: string, timef
   }, [symbol, timeframe]);
 
   return (
-    <div className="bg-panel rounded-lg border border-gray-800 p-4 shadow-lg w-full">
+    <div className="glass-card p-4 w-full flex flex-col">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
           <Gauge className="w-3.5 h-3.5" /> Volatility / ATR
