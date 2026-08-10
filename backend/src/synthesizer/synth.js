@@ -194,15 +194,28 @@ class Synthesizer {
 
     const ictContext = this._buildIctContext(zones, snapshot, mtfZones, econCalendar);
 
+    const isWait = snapshot.verdict === 'WAIT';
+    
+    let gateInstructions = '';
+    let verdictSchema = '';
+
+    if (isWait) {
+      gateInstructions = `HARD GATE: The mechanical engine has evaluated this setup and concluded there is no edge (Verdict: WAIT). 
+You are strictly FORBIDDEN from calling a direction. Your job is purely to provide market commentary and context summary. Do NOT attempt to invent a trade.`;
+    } else {
+      gateInstructions = `HARD GATE: The mechanical engine has flagged a ${snapshot.verdict} setup. 
+Your job is to validate or downgrade this verdict. You may output "${snapshot.verdict}" to confirm the setup, or "WAIT" to downgrade it if the context is poor or contradictory. You may NEVER flip the trade to the opposite direction, and you may NEVER upgrade a WAIT.`;
+      verdictSchema = `\n  "verdict": "${snapshot.verdict}" | "WAIT",`;
+    }
+
     const modeInstructions = mode === 'aggressive'
       ? `AGGRESSIVE SCALPER MODE:
-- FORCED DIRECTION: You MUST choose either LONG or SHORT. You are strictly FORBIDDEN from returning WAIT. If the setup is messy, pick the direction with the path of least resistance.
-- You are a high-frequency scalper. Ignore the Daily/4H MTF alignment if there is a clear 15m/1H setup.
+- Ignore the Daily/4H MTF alignment if there is a clear 15m/1H setup.
 - You only need 1 or 2 ICT factors to align (e.g., a simple liquidity sweep or FVG fill).
 - Take setups even if they are counter-trend.`
       : `STRICT INSTITUTIONAL MODE:
-- MULTI-TIMEFRAME ALIGNMENT: Do not call LONG if Daily/4H trend is strongly Bearish. Do not call SHORT if Daily/4H is strongly Bullish.
-- CONFLUENCE: Only call LONG or SHORT when at least 3 ICT factors align (MTF + liquidity + OB/FVG). Otherwise call WAIT.`;
+- MULTI-TIMEFRAME ALIGNMENT: Do not validate if Daily/4H trend is strongly contradictory.
+- CONFLUENCE: Only validate when at least 3 ICT factors align (MTF + liquidity + OB/FVG). Otherwise downgrade to WAIT.`;
 
     const prompt = `
 You are a senior institutional trader and quant analyst reviewing a live forex setup.
@@ -212,10 +225,10 @@ Reason about WHY price is doing what it's doing from a structural and liquidity 
 CRITICAL: The Technical Lane and Market Structure data are your PRIMARY sources of truth. If Narrative or Macro news contradicts a crystal clear technical setup, prioritize the Technical setup unless the news is an imminent Tier 1 event (e.g., NFP, CPI). Do not let random news headlines distract from objective price action.
 
 ${modeInstructions}
+${gateInstructions}
 
 Output ONLY strict JSON with EXACTLY these keys:
-{
-  "verdict": "${mode === 'aggressive' ? 'LONG" | "SHORT' : 'WAIT" | "LONG" | "SHORT'}",
+{${verdictSchema}
   "confidence": "Low" | "Medium" | "High",
   "market_structure_read": "<Current trend/range state, last confirmed BOS or CHoCH, key swing highs/lows in play. MUST include exact prices for structure levels — 2-3 sentences>",
   "liquidity_context": "<Where resting liquidity likely sits (equal highs/lows, prior session highs/lows), whether recent PA looks like a sweep, accumulation, or manipulation phase. MUST cite exact prices and pip distances from the data — 2-3 sentences>",
@@ -289,8 +302,19 @@ ${JSON.stringify(ictContext, null, 2)}
 
       const jsonResult = JSON.parse(response.text);
 
+      let finalVerdict = jsonResult.verdict || snapshot.verdict;
+      
+      // HARD GATE Server-Side Enforcement
+      if (snapshot.verdict === 'WAIT' && finalVerdict !== 'WAIT') {
+        console.warn(`[Hard Gate] Gemini attempted to override mechanical WAIT with ${finalVerdict}. Forcefully downgrading to WAIT.`);
+        finalVerdict = 'WAIT';
+      } else if (snapshot.verdict !== 'WAIT' && finalVerdict !== snapshot.verdict && finalVerdict !== 'WAIT') {
+        console.warn(`[Hard Gate] Gemini attempted to flip mechanical ${snapshot.verdict} to ${finalVerdict}. Forcefully downgrading to WAIT.`);
+        finalVerdict = 'WAIT';
+      }
+
       const result = {
-        verdict:     jsonResult.verdict     || snapshot.verdict,
+        verdict:     finalVerdict,
         confidence:  jsonResult.confidence  || snapshot.confidence,
         lanes:       snapshot.lanes,
 
