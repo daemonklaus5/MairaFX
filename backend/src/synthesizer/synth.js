@@ -80,7 +80,32 @@ class Synthesizer {
     } catch (err) { console.error('Watch zone error:', err.message); }
 
     const point_differential = Math.abs(bullScore - bearScore);
-    return { verdict, confidence, point_differential, lanes: { technical: t, flow: f, narrative: n, macro: m }, watch_zone, invalidation };
+    
+    // Compute numerical mechanical targets for baseline tracking
+    const pipSize = symbol.includes('JPY') ? 0.01 : 0.0001;
+    let mech_entry = currentPrice;
+    let mech_target = null;
+    let mech_invalidation = null;
+    
+    if (verdict === 'LONG' || verdict === 'SHORT') {
+      let validResistances = (zones?.resistance || []).filter(r => r.price > mech_entry);
+      let validSupports = (zones?.support || []).filter(s => s.price < mech_entry).sort((a,b) => b.price - a.price);
+
+      if (verdict === 'LONG') {
+        mech_target = validResistances.length > 0 ? validResistances[0].price : mech_entry + (50 * pipSize);
+        mech_invalidation = validSupports.length > 0 ? validSupports[0].min : mech_entry - (mech_target - mech_entry);
+      } else if (verdict === 'SHORT') {
+        mech_target = validSupports.length > 0 ? validSupports[0].price : mech_entry - (50 * pipSize);
+        mech_invalidation = validResistances.length > 0 ? validResistances[0].max : mech_entry + (mech_entry - mech_target);
+      }
+    }
+
+    return { 
+      verdict, confidence, point_differential, 
+      lanes: { technical: t, flow: f, narrative: n, macro: m }, 
+      watch_zone, invalidation,
+      mech_entry, mech_target, mech_invalidation
+    };
   }
 
   /**
@@ -413,6 +438,31 @@ ${JSON.stringify(ictContext, null, 2)}
               JSON.stringify(jsonResult)
             ]
           );
+
+          // Track Gemini Divergence: If Mechanical said LONG/SHORT but Gemini downgraded to WAIT
+          if (snapshot.verdict !== 'WAIT' && result.verdict === 'WAIT') {
+            await db.query(
+              `INSERT INTO ai_verdicts (
+                timestamp, pair, timeframe, verdict, conviction_score,
+                entry_price, invalidation_price, target_price,
+                confluence_factors, full_json_snapshot, full_ai_output, source
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+              [
+                new Date(now).toISOString(),
+                symbol,
+                timeframe,
+                snapshot.verdict, // The mechanical original verdict
+                calculatedScore,
+                snapshot.mech_entry,
+                snapshot.mech_invalidation,
+                snapshot.mech_target,
+                JSON.stringify([]),
+                JSON.stringify(ictContext),
+                'Mechanical Baseline (Gemini Diverged)',
+                'live_divergence'
+              ]
+            );
+          }
         } catch (dbErr) {
           console.error('Failed to log AI verdict to DB:', dbErr.message);
         }

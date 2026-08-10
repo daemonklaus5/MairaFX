@@ -129,9 +129,22 @@ async function resolvePendingVerdicts() {
         }
 
         if (outcome !== 'PENDING') {
+          let realized_r = null;
+          if (outcome !== 'CORRECT_WAIT' && outcome !== 'MISSED_WAIT') {
+            const risk = Math.abs(parseFloat(verdict.entry_price) - parseFloat(verdict.invalidation_price));
+            let reward = 0;
+            if (verdict.verdict === 'LONG') {
+              reward = outcome_price - parseFloat(verdict.entry_price);
+            } else if (verdict.verdict === 'SHORT') {
+              reward = parseFloat(verdict.entry_price) - outcome_price;
+            }
+            if (risk > 0) realized_r = reward / risk;
+            else realized_r = 0;
+          }
+
           await db.query(
-            `UPDATE ai_verdicts SET outcome = $1, outcome_price = $2, outcome_timestamp = $3 WHERE verdict_id = $4`,
-            [outcome, outcome_price, outcome_timestamp, verdict.verdict_id]
+            `UPDATE ai_verdicts SET outcome = $1, outcome_price = $2, outcome_timestamp = $3, realized_r = $4 WHERE verdict_id = $5`,
+            [outcome, outcome_price, outcome_timestamp, realized_r, verdict.verdict_id]
           );
         }
       }
