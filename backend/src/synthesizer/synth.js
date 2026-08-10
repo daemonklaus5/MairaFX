@@ -63,7 +63,8 @@ class Synthesizer {
       }
     } catch (err) { console.error('Watch zone error:', err.message); }
 
-    return { verdict, confidence, lanes: { technical: t, flow: f, narrative: n, macro: m }, watch_zone, invalidation };
+    const point_differential = Math.abs(bullScore - bearScore);
+    return { verdict, confidence, point_differential, lanes: { technical: t, flow: f, narrative: n, macro: m }, watch_zone, invalidation };
   }
 
   /**
@@ -194,6 +195,25 @@ class Synthesizer {
 
     const ictContext = this._buildIctContext(zones, snapshot, mtfZones, econCalendar);
 
+    // Calculate Confluence Count programmatically
+    let confluenceCount = 0;
+    
+    // 1. MTF Alignment
+    if (snapshot.verdict === 'LONG' && (mtfZones?.['D']?.marketStructure?.trend === 'bullish' || mtfZones?.['H4']?.marketStructure?.trend === 'bullish')) confluenceCount++;
+    if (snapshot.verdict === 'SHORT' && (mtfZones?.['D']?.marketStructure?.trend === 'bearish' || mtfZones?.['H4']?.marketStructure?.trend === 'bearish')) confluenceCount++;
+    
+    // 2. Killzone Active
+    if (ictContext.current_session?.includes('Killzone')) confluenceCount++;
+    
+    // 3. Unmitigated OB/FVG
+    if (ictContext.unmitigated_order_blocks?.length > 0 || ictContext.fair_value_gaps?.bullish?.length > 0 || ictContext.fair_value_gaps?.bearish?.length > 0) confluenceCount++;
+    
+    // 4. Liquidity Pools
+    if (ictContext.liquidity_pools?.buy_side_liquidity?.length > 0 || ictContext.liquidity_pools?.sell_side_liquidity?.length > 0) confluenceCount++;
+
+    const point_differential = snapshot.point_differential || 0;
+    const calculatedScore = Math.min(100, Math.round((point_differential * 0.6) + (confluenceCount * 10)));
+
     const isWait = snapshot.verdict === 'WAIT';
     
     let gateInstructions = '';
@@ -240,7 +260,7 @@ Output ONLY strict JSON with EXACTLY these keys:
   "invalidation": ["<exact price level or condition that breaks this thesis>", "<second invalidation>"],
   "weakest_point": "<One line on the weakest part of this read — what you are least confident about>",
   "overview": "<Summarize what you believe is happening right now and what could potentially happen in the near future. MUST cite key price levels and current price — 3-4 sentences>",
-  "overview_confidence_score": <integer 0-100 representing your confidence in the directional assumption>,
+  "conviction_score_explanation": "<Explain why the algorithmic conviction score is exactly ${calculatedScore}/100. Explicitly mention the mechanical point differential of ${point_differential.toFixed(1)} and the ${confluenceCount} confluence factors (e.g. MTF alignment, Killzones, OBs/FVGs, Liquidity) that contributed to this score. — 2-3 sentences>",
   "risk_sizing": "<e.g. 'Risk 35 pips (1% = 0.28 Lots per $10k)' or N/A if WAIT>",
   "entry_price_num": <float or null if WAIT>,
   "invalidation_price_num": <float or null if WAIT>,
@@ -326,7 +346,8 @@ ${JSON.stringify(ictContext, null, 2)}
         thesis:                jsonResult.thesis                || null,
         weakest_point:         jsonResult.weakest_point         || null,
         overview:              jsonResult.overview              || null,
-        overview_confidence_score: jsonResult.overview_confidence_score ?? null,
+        overview_confidence_score: calculatedScore,
+        conviction_score_explanation: jsonResult.conviction_score_explanation || null,
         entry_price_num: jsonResult.entry_price_num ?? null,
         invalidation_price_num: jsonResult.invalidation_price_num ?? null,
         target_price_num: jsonResult.target_price_num ?? null,

@@ -33,6 +33,7 @@ interface AiResult {
   weakest_point?: string | null;
   overview?: string | null;
   overview_confidence_score?: number | null;
+  conviction_score_explanation?: string | null;
   // Legacy/fallback
   reasoning: string;
   setup: string | null;
@@ -238,6 +239,16 @@ export function AiVerdictPanel({ symbol, timeframe, timezone, onAnalyzed }: Prop
             <div className="bg-darker border border-gray-800 rounded-md p-2.5">
               <div className="text-[9px] text-primary uppercase tracking-widest font-bold mb-1.5">Overview</div>
               <p className="text-[11px] text-gray-200 leading-relaxed">{data.overview}</p>
+            </div>
+          )}
+
+          {/* Conviction Score Explanation */}
+          {data.conviction_score_explanation && (
+            <div className="bg-gray-800/40 border border-gray-700 rounded-md p-2.5">
+              <div className="text-[9px] text-gray-400 uppercase tracking-widest font-bold mb-1.5 flex items-center gap-1">
+                <Target className="w-3 h-3" /> Score Breakdown
+              </div>
+              <p className="text-[11px] text-gray-300 leading-relaxed">{data.conviction_score_explanation}</p>
             </div>
           )}
 
