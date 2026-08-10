@@ -359,9 +359,66 @@ ${JSON.stringify(ictContext, null, 2)}
         }
       };
 
-      const response = await callGemini();
+      };
 
-      const jsonResult = JSON.parse(response.text);
+      const ictString = JSON.stringify(ictContext);
+      const ictNumbers = [...ictString.matchAll(/\b\d+\.\d{2,5}\b/g)].map(m => parseFloat(m[0]));
+
+      let jsonResult = null;
+      let isValid = false;
+      let attempts = 0;
+
+      while (attempts < 2 && !isValid) {
+        attempts++;
+        const response = await callGemini();
+        
+        try {
+          jsonResult = JSON.parse(response.text);
+          
+          // POST-PROCESSING VALIDATION
+          const responseNumbers = [...response.text.matchAll(/\b\d+\.\d{2,5}\b/g)].map(m => parseFloat(m[0]));
+          const hallucinations = [];
+          
+          for (const num of responseNumbers) {
+            // Tolerance of 0.00015 (1.5 pips for USD, 0.015 for JPY)
+            const found = ictNumbers.some(ictNum => Math.abs(ictNum - num) <= 0.00015 || Math.abs(ictNum - num) <= 0.015);
+            if (!found) hallucinations.push(num);
+          }
+          
+          if (hallucinations.length > 0) {
+            console.warn(`[Validation Failed] Gemini hallucinated numbers not in ictContext: ${hallucinations.join(', ')}. Attempt ${attempts}`);
+            if (attempts >= 2) jsonResult = null;
+          } else {
+            isValid = true;
+          }
+        } catch (e) {
+          console.warn(`[Parse Failed] Failed to parse JSON: ${e.message}. Attempt ${attempts}`);
+          if (attempts >= 2) jsonResult = null;
+        }
+      }
+
+      if (!jsonResult) {
+        console.warn('[Fallback] Using template-generated narrative due to persistent LLM failure.');
+        jsonResult = {
+          verdict: snapshot.verdict,
+          confidence: snapshot.confidence,
+          market_structure_read: `Rule-based analysis active. Daily trend is ${ictContext.mtf_alignment?.daily_trend || 'unclear'}, H4 is ${ictContext.mtf_alignment?.h4_trend || 'unclear'}.`,
+          liquidity_context: "Relying purely on mechanical signal extraction.",
+          session_timing: ictContext.current_session || "Unknown session.",
+          confluence_check: `Mechanical point differential: ${point_differential}.`,
+          thesis: "AI validation failed numerical constraints. Bypassing LLM validation to preserve structural integrity.",
+          setup: "Mechanical Setup",
+          watch_zone: snapshot.watch_zone,
+          invalidation: snapshot.invalidation,
+          weakest_point: "LLM hallucination rejected.",
+          overview: "Automated mechanical fallback.",
+          conviction_score_explanation: "Generated natively without LLM interference.",
+          risk_sizing: "N/A",
+          entry_price_num: snapshot.mech_entry,
+          target_price_num: snapshot.mech_target,
+          invalidation_price_num: snapshot.mech_invalidation
+        };
+      }
 
       let finalVerdict = jsonResult.verdict || snapshot.verdict;
       
