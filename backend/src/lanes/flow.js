@@ -62,7 +62,7 @@ class FlowLane {
     if (score >= 15) bias = 'bull';
     if (score <= -15) bias = 'bear';
 
-    return { bias, tier, score, basis: basis.join(', ') };
+    return { bias, tier, score, basis: basis.join(', '), lastUpdated: new Date().toISOString() };
   }
 }
 

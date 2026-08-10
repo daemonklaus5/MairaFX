@@ -5,6 +5,7 @@ interface LaneData {
   tier: 'high' | 'moderate' | 'low';
   score: number;
   basis: string;
+  lastUpdated?: string;
 }
 
 interface LanesResponse {
@@ -75,6 +76,20 @@ export function LanePanel({ data }: { data: LanesResponse | null }) {
         <div className="text-[10px] text-gray-400 leading-snug">
           {lane.basis}
         </div>
+        {lane.lastUpdated && (
+          <div className="text-[9px] text-gray-500 mt-1 opacity-80">
+            Updated: {(() => {
+              const diffMs = Date.now() - new Date(lane.lastUpdated).getTime();
+              const diffMins = Math.round(diffMs / 60000);
+              const diffHours = Math.round(diffMins / 60);
+              const diffDays = Math.round(diffHours / 24);
+              if (diffMins < 1) return 'Just now';
+              if (diffMins < 60) return `${diffMins} min ago`;
+              if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+              return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+            })()}
+          </div>
+        )}
       </div>
     );
   };

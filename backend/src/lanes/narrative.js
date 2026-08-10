@@ -117,7 +117,8 @@ class NarrativeLane {
       ? `${scoredHeadlines.length} relevant headlines: ${scoredHeadlines.slice(0, 3).join(' | ')}`
       : `No directional headlines found for ${base}/${quote}`;
 
-    return { bias, tier, score, basis };
+    const lastUpdated = new Date(this._cacheTime).toISOString();
+    return { bias, tier, score, basis, lastUpdated };
   }
 }
 

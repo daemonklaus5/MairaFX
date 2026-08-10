@@ -112,7 +112,8 @@ class MacroLane {
     const tier = absScore >= 30 ? 'high' : absScore >= 15 ? 'moderate' : 'low';
     const bias = score >= 15 ? 'bull' : score <= -15 ? 'bear' : 'mixed';
 
-    return { bias, tier, score, basis: basis.join(', ') };
+    const lastUpdated = cotData?.date ? new Date(cotData.date).toISOString() : new Date().toISOString();
+    return { bias, tier, score, basis: basis.join(', '), lastUpdated };
   }
 }
 

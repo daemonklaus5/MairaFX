@@ -74,22 +74,24 @@ async function runBacktest(runId, pairs, timeframe, detector, synth, useAi = fal
         
         if (snapshot.verdict !== 'WAIT') {
           // Calculate valid entry/target/invalidation floats
-          let entry = currentPrice;
-          let target = null;
-          let invalidation = null;
-
-          let validResistances = (zones.resistance || []).filter(r => r.price > entry);
-          let validSupports = (zones.support || []).filter(s => s.price < entry).sort((a,b) => b.price - a.price);
-
+          const spreadCost = (pair.includes('JPY') ? 1.5 : 1.5) * pipSize;
+          const slippage = 0.5 * pipSize;
+          const totalCost = spreadCost + slippage;
+          
+          let entry = snapshot.mech_entry;
           if (snapshot.verdict === 'LONG') {
-            target = validResistances.length > 0 ? validResistances[0].price : entry + (50 * pipSize);
-            invalidation = validSupports.length > 0 ? validSupports[0].min : entry - (target - entry);
+            entry = entry + totalCost;
           } else if (snapshot.verdict === 'SHORT') {
-            target = validSupports.length > 0 ? validSupports[0].price : entry - (50 * pipSize);
-            invalidation = validResistances.length > 0 ? validResistances[0].max : entry + (entry - target);
+            entry = entry - totalCost;
           }
+          
+          let target = snapshot.mech_target;
+          let invalidation = snapshot.mech_invalidation;
 
           if (target && invalidation) {
+            let factors = Object.values(snapshot.lanes).flatMap(l => l.basis.split(', '));
+            if (snapshot.fallback_target_used) factors.push('Fallback Target');
+
             // Push to pending queue
             pendingVerdicts.push({
               verdict_id: uuidv4(),
@@ -101,7 +103,7 @@ async function runBacktest(runId, pairs, timeframe, detector, synth, useAi = fal
               entry_price: entry,
               target_price: target,
               invalidation_price: invalidation,
-              confluence_factors: JSON.stringify(Object.values(snapshot.lanes).flatMap(l => l.basis.split(', '))),
+              confluence_factors: JSON.stringify(factors),
               full_json_snapshot: JSON.stringify({}),
               full_ai_output: 'Mechanical backtest execution',
               outcome: 'PENDING',
@@ -198,11 +200,14 @@ async function resolvePending(verdicts, candles, currentIndex, spreadCost) {
       const high = parseFloat(c.high);
       const low = parseFloat(c.low);
       const close = parseFloat(c.close);
+      
+      const pipSize = v.pair.includes('JPY') ? 0.01 : 0.0001;
+      const slippage = 0.5 * pipSize;
 
       if (v.verdict === 'LONG') {
         if (low <= v.invalidation_price) {
           v.outcome = 'LOSS';
-          v.outcome_price = v.invalidation_price - spreadCost;
+          v.outcome_price = v.invalidation_price - slippage;
           v.outcome_timestamp = c.timestamp;
           resolved = true;
           break;
@@ -216,7 +221,7 @@ async function resolvePending(verdicts, candles, currentIndex, spreadCost) {
       } else if (v.verdict === 'SHORT') {
         if (high >= v.invalidation_price) {
           v.outcome = 'LOSS';
-          v.outcome_price = v.invalidation_price + spreadCost;
+          v.outcome_price = v.invalidation_price + slippage;
           v.outcome_timestamp = c.timestamp;
           resolved = true;
           break;

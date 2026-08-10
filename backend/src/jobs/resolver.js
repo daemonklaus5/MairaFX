@@ -79,18 +79,21 @@ async function resolvePendingVerdicts() {
             for (const c of subsequentCandles) {
               const h = parseFloat(c.bid.h);
               const l = parseFloat(c.bid.l);
-              
+              const pipSize = pair.includes('JPY') ? 0.01 : 0.0001;
+              const spreadCost = 1.5 * pipSize;
+              const slippage = 0.5 * pipSize;
+
               if (verdict.verdict === 'LONG') {
                 if (l <= inval) {
-                  outcome = 'LOSS'; outcome_price = inval; outcome_timestamp = c.time; break;
+                  outcome = 'LOSS'; outcome_price = inval - slippage; outcome_timestamp = c.time; break;
                 } else if (h >= target) {
-                  outcome = 'WIN'; outcome_price = target; outcome_timestamp = c.time; break;
+                  outcome = 'WIN'; outcome_price = target - spreadCost; outcome_timestamp = c.time; break;
                 }
               } else {
                 if (h >= inval) {
-                  outcome = 'LOSS'; outcome_price = inval; outcome_timestamp = c.time; break;
+                  outcome = 'LOSS'; outcome_price = inval + slippage; outcome_timestamp = c.time; break;
                 } else if (l <= target) {
-                  outcome = 'WIN'; outcome_price = target; outcome_timestamp = c.time; break;
+                  outcome = 'WIN'; outcome_price = target + spreadCost; outcome_timestamp = c.time; break;
                 }
               }
             }

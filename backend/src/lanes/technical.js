@@ -139,7 +139,7 @@ class TechnicalLane {
     const tier = absScore >= 40 ? 'high' : absScore >= 20 ? 'moderate' : 'low';
     const bias = score >= 20 ? 'bull' : score <= -20 ? 'bear' : 'mixed';
 
-    return { bias, tier, score, basis: basis.join(', ') };
+    return { bias, tier, score, basis: basis.join(', '), lastUpdated: new Date().toISOString() };
   }
 }
 

@@ -83,19 +83,37 @@ class Synthesizer {
     
     // Compute numerical mechanical targets for baseline tracking
     const pipSize = symbol.includes('JPY') ? 0.01 : 0.0001;
+    const spreadCost = 1.5 * pipSize;
+    const slippage = 0.5 * pipSize;
+    const totalCost = spreadCost + slippage;
+
     let mech_entry = currentPrice;
+    if (verdict === 'LONG') mech_entry += totalCost;
+    else if (verdict === 'SHORT') mech_entry -= totalCost;
+
     let mech_target = null;
     let mech_invalidation = null;
+    let fallback_target_used = false;
     
     if (verdict === 'LONG' || verdict === 'SHORT') {
       let validResistances = (zones?.resistance || []).filter(r => r.price > mech_entry);
       let validSupports = (zones?.support || []).filter(s => s.price < mech_entry).sort((a,b) => b.price - a.price);
 
       if (verdict === 'LONG') {
-        mech_target = validResistances.length > 0 ? validResistances[0].price : mech_entry + (50 * pipSize);
+        if (validResistances.length > 0) {
+          mech_target = validResistances[0].price;
+        } else {
+          mech_target = mech_entry + (50 * pipSize);
+          fallback_target_used = true;
+        }
         mech_invalidation = validSupports.length > 0 ? validSupports[0].min : mech_entry - (mech_target - mech_entry);
       } else if (verdict === 'SHORT') {
-        mech_target = validSupports.length > 0 ? validSupports[0].price : mech_entry - (50 * pipSize);
+        if (validSupports.length > 0) {
+          mech_target = validSupports[0].price;
+        } else {
+          mech_target = mech_entry - (50 * pipSize);
+          fallback_target_used = true;
+        }
         mech_invalidation = validResistances.length > 0 ? validResistances[0].max : mech_entry + (mech_entry - mech_target);
       }
     }
@@ -104,7 +122,7 @@ class Synthesizer {
       verdict, confidence, point_differential, 
       lanes: { technical: t, flow: f, narrative: n, macro: m }, 
       watch_zone, invalidation,
-      mech_entry, mech_target, mech_invalidation
+      mech_entry, mech_target, mech_invalidation, fallback_target_used
     };
   }
 
