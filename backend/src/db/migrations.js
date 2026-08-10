@@ -85,6 +85,9 @@ async function runMigrations() {
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ai_verdicts' AND column_name='run_id') THEN
               ALTER TABLE ai_verdicts ADD COLUMN run_id VARCHAR(100);
           END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ai_verdicts' AND column_name='realized_r') THEN
+              ALTER TABLE ai_verdicts ADD COLUMN realized_r NUMERIC;
+          END IF;
       END $$;
     `);
     

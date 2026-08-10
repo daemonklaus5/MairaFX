@@ -236,6 +236,25 @@ async function resolvePending(verdicts, candles, currentIndex, spreadCost) {
         v.outcome_price = parseFloat(candles[Math.min(candles.length - 1, v.startIndex + 200)].close);
         v.outcome_timestamp = candles[Math.min(candles.length - 1, v.startIndex + 200)].timestamp;
       }
+      
+      if (v.outcome !== 'CORRECT_WAIT' && v.outcome !== 'MISSED_WAIT') {
+        const risk = Math.abs(v.entry_price - v.invalidation_price);
+        let reward = 0;
+        if (v.verdict === 'LONG') {
+          reward = v.outcome_price - v.entry_price;
+        } else if (v.verdict === 'SHORT') {
+          reward = v.entry_price - v.outcome_price;
+        }
+        
+        if (risk > 0) {
+          v.realized_r = reward / risk;
+        } else {
+          v.realized_r = 0;
+        }
+      } else {
+        v.realized_r = null;
+      }
+      
       toInsert.push(v);
       verdicts.splice(i, 1);
     }
@@ -248,12 +267,12 @@ async function resolvePending(verdicts, candles, currentIndex, spreadCost) {
     let idx = 1;
 
     for (const v of toInsert) {
-      placeholders.push(`($${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++})`);
+      placeholders.push(`($${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++})`);
       values.push(
         v.verdict_id, v.timestamp, v.pair, v.timeframe, v.verdict, v.conviction_score,
         v.entry_price, v.invalidation_price, v.target_price, v.confluence_factors,
         v.full_json_snapshot, v.full_ai_output, v.outcome, v.outcome_price, v.outcome_timestamp,
-        v.source, v.run_id
+        v.source, v.run_id, v.realized_r
       );
     }
 
@@ -262,7 +281,7 @@ async function resolvePending(verdicts, candles, currentIndex, spreadCost) {
         verdict_id, timestamp, pair, timeframe, verdict, conviction_score,
         entry_price, invalidation_price, target_price, confluence_factors,
         full_json_snapshot, full_ai_output, outcome, outcome_price, outcome_timestamp,
-        source, run_id
+        source, run_id, realized_r
       ) VALUES ${placeholders.join(', ')}
     `;
 

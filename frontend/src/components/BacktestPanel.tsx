@@ -13,7 +13,7 @@ interface Verdict {
 
 interface BacktestStats {
   buckets: BucketStat[]; pairs: PairStat[]; wait_accuracy: WaitAccuracy;
-  ai_vs_mechanical?: { source: string; total: number; wins: number }[];
+  ai_vs_mechanical?: { source: string; total: number; wins: number; avg_win_r: string; avg_loss_r: string; expectancy_r: string }[];
   recent_verdicts: Verdict[]; confluence_stats: ConfluenceStat;
 }
 
@@ -267,9 +267,11 @@ const BacktestPanel: React.FC = () => {
                 <h3>AI vs Mechanical Edge Comparison</h3>
                 <div className="bars-container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   {(() => {
-                    const mech = stats.ai_vs_mechanical.find(s => s.source === 'backtest') || { wins: 0, total: 0 };
-                    const aiConf = stats.ai_vs_mechanical.find(s => s.source === 'backtest_ai') || { wins: 0, total: 0 };
+                    const mech = stats.ai_vs_mechanical.find(s => s.source === 'backtest') || { wins: 0, total: 0, expectancy_r: '0', avg_win_r: '0', avg_loss_r: '0' };
+                    const aiConf = stats.ai_vs_mechanical.find(s => s.source === 'backtest_ai') || { wins: 0, total: 0, expectancy_r: '0', avg_win_r: '0', avg_loss_r: '0' };
                     const aiRej = stats.ai_vs_mechanical.find(s => s.source === 'backtest_ai_rejected') || { wins: 0, total: 0 };
+                    
+                    const formatR = (val: string | undefined) => val ? Number(val).toFixed(2) : '0.00';
                     
                     return (
                       <>
@@ -279,6 +281,16 @@ const BacktestPanel: React.FC = () => {
                             <div className="bar-fill bg-orange-400" style={{ width: `${calculateWinRate(mech.wins, mech.total)}%` }} />
                           </div>
                           <span className="value">{calculateWinRate(mech.wins, mech.total)}% Win Rate <span className="sub">({mech.wins}/{mech.total} Hits)</span></span>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '12px', width: '100%', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '8px' }}>
+                            <div>
+                              <span className="sub" style={{ display: 'block', fontSize: '9px' }}>EXPECTANCY</span>
+                              <span className="value" style={{ color: Number(mech.expectancy_r) >= 0 ? '#00e676' : '#ff1744' }}>{formatR(mech.expectancy_r)}R</span>
+                            </div>
+                            <div>
+                              <span className="sub" style={{ display: 'block', fontSize: '9px' }}>AVG W / L</span>
+                              <span className="value">{formatR(mech.avg_win_r)}R / {formatR(mech.avg_loss_r)}R</span>
+                            </div>
+                          </div>
                         </div>
                         
                         <div className="stat-bar-row" style={{ flexDirection: 'column', alignItems: 'flex-start', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px' }}>
@@ -287,7 +299,17 @@ const BacktestPanel: React.FC = () => {
                             <div className="bar-fill bg-neon-green" style={{ width: `${calculateWinRate(aiConf.wins, aiConf.total)}%` }} />
                           </div>
                           <span className="value">{calculateWinRate(aiConf.wins, aiConf.total)}% Win Rate <span className="sub">({aiConf.wins}/{aiConf.total} Hits)</span></span>
-                          {aiRej.total > 0 && <span className="sub" style={{ marginTop: '8px', color: '#ff9800' }}>AI intercepted and rejected {aiRej.total} bad setups.</span>}
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '12px', width: '100%', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '8px' }}>
+                            <div>
+                              <span className="sub" style={{ display: 'block', fontSize: '9px' }}>EXPECTANCY</span>
+                              <span className="value" style={{ color: Number(aiConf.expectancy_r) >= 0 ? '#00e676' : '#ff1744' }}>{formatR(aiConf.expectancy_r)}R</span>
+                            </div>
+                            <div>
+                              <span className="sub" style={{ display: 'block', fontSize: '9px' }}>AVG W / L</span>
+                              <span className="value">{formatR(aiConf.avg_win_r)}R / {formatR(aiConf.avg_loss_r)}R</span>
+                            </div>
+                          </div>
+                          {aiRej.total > 0 && <span className="sub" style={{ marginTop: '12px', color: '#ff9800', width: '100%', textAlign: 'center' }}>AI intercepted and rejected {aiRej.total} bad setups.</span>}
                         </div>
                       </>
                     )

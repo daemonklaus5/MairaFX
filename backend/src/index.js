@@ -149,7 +149,13 @@ async function bootstrap() {
       `, params);
 
       const aiVsMechanicalRes = await db.query(`
-        SELECT source, COUNT(*) as total, SUM(CASE WHEN outcome IN ('WIN', 'CORRECT_WAIT') THEN 1 ELSE 0 END) as wins
+        SELECT 
+          source, 
+          COUNT(*) as total, 
+          SUM(CASE WHEN outcome IN ('WIN', 'CORRECT_WAIT') THEN 1 ELSE 0 END) as wins,
+          AVG(CASE WHEN realized_r > 0 THEN realized_r ELSE NULL END) as avg_win_r,
+          AVG(CASE WHEN realized_r <= 0 THEN ABS(realized_r) ELSE NULL END) as avg_loss_r,
+          AVG(realized_r) as expectancy_r
         FROM ai_verdicts
         ${whereClause} AND source IN ('backtest', 'backtest_ai', 'backtest_ai_rejected')
         GROUP BY source
