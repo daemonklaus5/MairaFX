@@ -148,6 +148,13 @@ async function bootstrap() {
         ${waitWhereClause}
       `, params);
 
+      const aiVsMechanicalRes = await db.query(`
+        SELECT source, COUNT(*) as total, SUM(CASE WHEN outcome IN ('WIN', 'CORRECT_WAIT') THEN 1 ELSE 0 END) as wins
+        FROM ai_verdicts
+        ${whereClause} AND source IN ('backtest', 'backtest_ai', 'backtest_ai_rejected')
+        GROUP BY source
+      `, params);
+
       const recentRes = await db.query(`
         SELECT * FROM ai_verdicts 
         ${whereClause}
@@ -173,6 +180,7 @@ async function bootstrap() {
         buckets: bucketRes.rows,
         pairs: pairRes.rows,
         wait_accuracy: waitRes.rows[0],
+        ai_vs_mechanical: aiVsMechanicalRes.rows,
         recent_verdicts: recentRes.rows,
         confluence_stats: confluenceMap
       });
@@ -392,7 +400,7 @@ async function bootstrap() {
       const runId = `Offline [${timeframe}] ${new Date().toLocaleTimeString()} - ${pairs.join(', ')}`;
       
       // Fire and forget
-      backtester.runBacktest(runId, pairs, timeframe, detector, synth);
+      backtester.runBacktest(runId, pairs, timeframe, detector, synth, useAi);
       
       res.json({ success: true, runId });
     } catch (err) {

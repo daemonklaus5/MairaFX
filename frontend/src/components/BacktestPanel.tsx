@@ -13,6 +13,7 @@ interface Verdict {
 
 interface BacktestStats {
   buckets: BucketStat[]; pairs: PairStat[]; wait_accuracy: WaitAccuracy;
+  ai_vs_mechanical?: { source: string; total: number; wins: number }[];
   recent_verdicts: Verdict[]; confluence_stats: ConfluenceStat;
 }
 
@@ -35,7 +36,8 @@ const BacktestPanel: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalConfig, setModalConfig] = useState({
     pairs: 'EUR_USD, GBP_USD, USD_JPY',
-    timeframe: 'H1'
+    timeframe: 'H1',
+    useAi: false
   });
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const [progress, setProgress] = useState<any>(null);
@@ -170,8 +172,13 @@ const BacktestPanel: React.FC = () => {
               <option value="H4">H4</option>
               <option value="D">D</option>
             </select>
+            
+            <div className="modal-label" style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input type="checkbox" checked={modalConfig.useAi} onChange={e => setModalConfig({...modalConfig, useAi: e.target.checked})} />
+              Full Pipeline Backtest (Uses Gemini API, Max 200/pair)
+            </div>
 
-            <div className="modal-actions">
+            <div className="modal-actions" style={{ marginTop: '1.5rem' }}>
               <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
               <button className="btn btn-primary btn-neon" onClick={handleRunBacktest}>Start Engine</button>
             </div>
@@ -249,12 +256,45 @@ const BacktestPanel: React.FC = () => {
                         style={{ width: `${calculateWinRate(b.wins, b.total)}%` }}
                       />
                     </div>
-                    <span className="value">{calculateWinRate(b.wins, b.total)}%</span>
+                    <span className="value">{calculateWinRate(b.wins, b.total)}% <span className="sub">({b.total})</span></span>
                   </div>
                 ))}
-                {stats.buckets.length === 0 && <span className="empty">No resolved data yet</span>}
               </div>
             </div>
+
+            {stats.ai_vs_mechanical && stats.ai_vs_mechanical.length > 0 && (
+              <div className="stat-card glass-panel" style={{ gridColumn: '1 / -1' }}>
+                <h3>AI vs Mechanical Edge Comparison</h3>
+                <div className="bars-container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  {(() => {
+                    const mech = stats.ai_vs_mechanical.find(s => s.source === 'backtest') || { wins: 0, total: 0 };
+                    const aiConf = stats.ai_vs_mechanical.find(s => s.source === 'backtest_ai') || { wins: 0, total: 0 };
+                    const aiRej = stats.ai_vs_mechanical.find(s => s.source === 'backtest_ai_rejected') || { wins: 0, total: 0 };
+                    
+                    return (
+                      <>
+                        <div className="stat-bar-row" style={{ flexDirection: 'column', alignItems: 'flex-start', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px' }}>
+                          <span className="label" style={{ marginBottom: '8px', width: '100%' }}>Mechanical-Only Trades</span>
+                          <div className="bar-bg" style={{ width: '100%', marginBottom: '8px' }}>
+                            <div className="bar-fill bg-orange-400" style={{ width: `${calculateWinRate(mech.wins, mech.total)}%` }} />
+                          </div>
+                          <span className="value">{calculateWinRate(mech.wins, mech.total)}% Win Rate <span className="sub">({mech.wins}/{mech.total} Hits)</span></span>
+                        </div>
+                        
+                        <div className="stat-bar-row" style={{ flexDirection: 'column', alignItems: 'flex-start', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px' }}>
+                          <span className="label" style={{ marginBottom: '8px', width: '100%', color: '#00e676' }}>Gemini-Confirmed Trades</span>
+                          <div className="bar-bg" style={{ width: '100%', marginBottom: '8px' }}>
+                            <div className="bar-fill bg-neon-green" style={{ width: `${calculateWinRate(aiConf.wins, aiConf.total)}%` }} />
+                          </div>
+                          <span className="value">{calculateWinRate(aiConf.wins, aiConf.total)}% Win Rate <span className="sub">({aiConf.wins}/{aiConf.total} Hits)</span></span>
+                          {aiRej.total > 0 && <span className="sub" style={{ marginTop: '8px', color: '#ff9800' }}>AI intercepted and rejected {aiRej.total} bad setups.</span>}
+                        </div>
+                      </>
+                    )
+                  })()}
+                </div>
+              </div>
+            )}
 
             <div className="stat-card glass-panel">
               <h3>Win Rate by Pair</h3>

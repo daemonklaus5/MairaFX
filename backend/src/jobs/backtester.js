@@ -4,7 +4,7 @@ const { EMA, RSI, ADX } = require('technicalindicators');
 
 const activeRuns = new Map();
 
-async function runBacktest(runId, pairs, timeframe, detector, synth) {
+async function runBacktest(runId, pairs, timeframe, detector, synth, useAi = false) {
   try {
     const runInfo = { status: 'RUNNING', total: 0, current: 0, pairs: pairs.length };
     activeRuns.set(runId, runInfo);
@@ -30,6 +30,7 @@ async function runBacktest(runId, pairs, timeframe, detector, synth) {
       const TIMEOUT_BARS = 200; // max bars to wait before TIMEOUT
 
       const pendingVerdicts = [];
+      let aiCallsCount = 0;
 
       for (let i = 500; i < candles.length; i++) {
         runInfo.current++;
@@ -108,6 +109,56 @@ async function runBacktest(runId, pairs, timeframe, detector, synth) {
               run_id: runId,
               startIndex: i
             });
+
+            if (useAi && aiCallsCount < 200) {
+              aiCallsCount++;
+              let mtfZones = { 'D': null, 'H4': null };
+              
+              if (timeframe !== 'D') {
+                const dRes = await db.query(`SELECT timestamp, open, high, low, close, volume FROM candles WHERE symbol = $1 AND timeframe = 'D' AND timestamp <= $2 ORDER BY timestamp DESC LIMIT 100`, [pair, currentCandle.timestamp]);
+                if (dRes.rows.length > 50) mtfZones['D'] = await detector.detect(pair, 'D', dRes.rows.reverse());
+              }
+              if (timeframe !== 'H4' && timeframe !== 'D') {
+                const h4Res = await db.query(`SELECT timestamp, open, high, low, close, volume FROM candles WHERE symbol = $1 AND timeframe = 'H4' AND timestamp <= $2 ORDER BY timestamp DESC LIMIT 100`, [pair, currentCandle.timestamp]);
+                if (h4Res.rows.length > 50) mtfZones['H4'] = await detector.detect(pair, 'H4', h4Res.rows.reverse());
+              }
+
+              const aiResult = await synth.getAiNarrative(pair, timeframe, snapshot, zones, mtfZones, []);
+              
+              if (aiResult.verdict !== 'WAIT') {
+                pendingVerdicts.push({
+                  verdict_id: uuidv4(),
+                  pair, timeframe, timestamp: currentCandle.timestamp,
+                  verdict: aiResult.verdict,
+                  conviction_score: aiResult.conviction_score || 0,
+                  entry_price: entry, target_price: target, invalidation_price: invalidation,
+                  confluence_factors: JSON.stringify([]),
+                  full_json_snapshot: JSON.stringify(aiResult),
+                  full_ai_output: 'Gemini Backtest Confirmed',
+                  outcome: 'PENDING',
+                  source: 'backtest_ai',
+                  run_id: runId,
+                  startIndex: i
+                });
+              } else {
+                pendingVerdicts.push({
+                  verdict_id: uuidv4(),
+                  pair, timeframe, timestamp: currentCandle.timestamp,
+                  verdict: 'WAIT',
+                  conviction_score: aiResult.conviction_score || 0,
+                  entry_price: entry, target_price: target, invalidation_price: invalidation,
+                  confluence_factors: JSON.stringify([]),
+                  full_json_snapshot: JSON.stringify(aiResult),
+                  full_ai_output: 'Gemini Backtest Downgraded',
+                  outcome: 'CORRECT_WAIT',
+                  outcome_price: entry,
+                  outcome_timestamp: currentCandle.timestamp,
+                  source: 'backtest_ai_rejected',
+                  run_id: runId,
+                  startIndex: i
+                });
+              }
+            }
           }
         }
       }
@@ -132,6 +183,12 @@ async function resolvePending(verdicts, candles, currentIndex, spreadCost) {
   for (let i = verdicts.length - 1; i >= 0; i--) {
     const v = verdicts[i];
     let resolved = false;
+
+    if (v.outcome !== 'PENDING') {
+      toInsert.push(v);
+      verdicts.splice(i, 1);
+      continue;
+    }
 
     // Check future candles
     for (let j = v.startIndex + 1; j < Math.min(candles.length, v.startIndex + 200); j++) {
