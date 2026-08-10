@@ -377,7 +377,6 @@ ${JSON.stringify(ictContext, null, 2)}
         }
       };
 
-      };
 
       const ictString = JSON.stringify(ictContext);
       const ictNumbers = [...ictString.matchAll(/\b\d+\.\d{2,5}\b/g)].map(m => parseFloat(m[0]));
