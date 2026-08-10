@@ -447,7 +447,7 @@ async function bootstrap() {
       const econCalendar = apiKey ? await fetchEconomicCalendar(apiKey) : [];
 
       const mode = req.query.mode || 'strict';
-      const snapshot = await synth.evaluateRuleBased(symbol, timeframe, price, zones);
+      const snapshot = await synth.evaluateRuleBased(symbol, timeframe, price, zones, latestInds, mtfZones);
       const aiResult = await synth.getAiNarrative(symbol, timeframe, snapshot, zones, mtfZones, econCalendar, mode);
 
       res.json(aiResult);

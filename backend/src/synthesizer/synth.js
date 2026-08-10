@@ -17,7 +17,7 @@ class Synthesizer {
    * All lanes are now async (FlowLane fetches live rates, NarrativeLane fetches news).
    * Each lane has an 8s hard timeout — a hung lane falls back to neutral, never blocks.
    */
-  async evaluateRuleBased(symbol, timeframe, currentPrice, zones, customIndicators = null) {
+  async evaluateRuleBased(symbol, timeframe, currentPrice, zones, customIndicators = null, mtfZones = null) {
     const marketStructure = zones?.marketStructure ?? null;
     const LANE_FALLBACK = { bias: 'mixed', tier: 'low', score: 0, basis: 'Lane unavailable' };
 
@@ -45,6 +45,22 @@ class Synthesizer {
       if (lane.bias === 'bull') bullScore += lane.score;
       if (lane.bias === 'bear') bearScore += Math.abs(lane.score);
     });
+
+    // MTF Structural Penalty (Hard-enforced before verdict)
+    if (mtfZones) {
+      const dailyTrend = mtfZones['D']?.marketStructure?.trend;
+      const h4Trend = mtfZones['H4']?.marketStructure?.trend;
+      
+      // If higher timeframes are bearish, penalize LONGs
+      if (dailyTrend === 'bearish' || h4Trend === 'bearish') {
+        bullScore = Math.max(0, bullScore - 30);
+      }
+      
+      // If higher timeframes are bullish, penalize SHORTs
+      if (dailyTrend === 'bullish' || h4Trend === 'bullish') {
+        bearScore = Math.max(0, bearScore - 30);
+      }
+    }
 
     let verdict = 'WAIT', confidence = 'low';
     if      (bullScore > bearScore + 40) { verdict = 'LONG';  confidence = bullScore > 80 ? 'high' : 'moderate'; }
