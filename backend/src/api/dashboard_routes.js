@@ -102,37 +102,36 @@ module.exports = function(engine) {
   router.get('/calendar', async (req, res) => {
     try {
       const axios = require('axios');
-      const response = await axios.get('https://nfs.faireconomy.media/ff_calendar_thisweek.json', {
+      // Use TradingView's API (bypasses Cloudflare on Render and provides Actual values)
+      const response = await axios.get('https://economic-calendar.tradingview.com/events', {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
-          'Accept': 'application/json, text/plain, */*'
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+          'Origin': 'https://www.tradingview.com',
+          'Accept': 'application/json'
         },
         timeout: 5000
       });
 
-      const events = response.data;
-      if (!Array.isArray(events)) {
-        return res.json([]);
-      }
+      const events = response.data?.result || [];
 
-      // Filter for high impact events
+      // Filter for high impact events (importance === 1) and map to our format
       const highImpact = events
-        .filter(e => e.impact === 'High')
+        .filter(e => e.importance === 1)
         .map((e, i) => ({
           id: i + 1,
           time: new Date(e.date).getTime(),
           country: e.country,
           event: e.title,
-          impact: e.impact,
-          previous: e.previous || '-',
-          estimate: e.forecast || '-',
-          actual: null // ForexFactory free JSON does not include actuals
+          impact: 'High',
+          previous: e.previous !== undefined && e.previous !== null ? `${e.previous}` : '-',
+          estimate: e.forecast !== undefined && e.forecast !== null ? `${e.forecast}` : '-',
+          actual: e.actual !== undefined && e.actual !== null ? `${e.actual}` : null
         }));
 
       res.json(highImpact);
     } catch (err) {
-      console.error("ForexFactory API Error:", err.message);
-      res.status(500).json({ error: "Failed to fetch calendar from ForexFactory." });
+      console.error("Calendar API Error:", err.message);
+      res.status(500).json({ error: "Failed to fetch calendar data." });
     }
   });
 
