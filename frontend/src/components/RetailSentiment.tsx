@@ -8,7 +8,7 @@ interface SentimentData {
 }
 
 export function RetailSentiment() {
-  const [data, setData] = useState<{ symbol: string; longPercent: number; shortPercent: number }[]>([]);
+  const [data, setData] = useState<SentimentData[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
 
