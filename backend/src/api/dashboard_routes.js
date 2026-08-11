@@ -102,8 +102,14 @@ module.exports = function(engine) {
   router.get('/calendar', async (req, res) => {
     try {
       const axios = require('axios');
+      
+      // Calculate date range for the next 3 days
+      const now = new Date();
+      const fromDate = now.toISOString();
+      const toDate = new Date(now.getTime() + (3 * 24 * 60 * 60 * 1000)).toISOString();
+      
       // Use TradingView's API (bypasses Cloudflare on Render and provides Actual values)
-      const response = await axios.get('https://economic-calendar.tradingview.com/events', {
+      const response = await axios.get(`https://economic-calendar.tradingview.com/events?from=${encodeURIComponent(fromDate)}&to=${encodeURIComponent(toDate)}`, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
           'Origin': 'https://www.tradingview.com',
@@ -114,15 +120,15 @@ module.exports = function(engine) {
 
       const events = response.data?.result || [];
 
-      // Filter for high impact events (importance === 1) and map to our format
+      // Filter for high and medium impact events (importance 1 and 0) and map to our format
       const highImpact = events
-        .filter(e => e.importance === 1)
+        .filter(e => e.importance >= 0)
         .map((e, i) => ({
           id: i + 1,
           time: new Date(e.date).getTime(),
           country: e.country,
           event: e.title,
-          impact: 'High',
+          impact: e.importance === 1 ? 'High' : 'Medium',
           previous: e.previous !== undefined && e.previous !== null ? `${e.previous}` : '-',
           estimate: e.forecast !== undefined && e.forecast !== null ? `${e.forecast}` : '-',
           actual: e.actual !== undefined && e.actual !== null ? `${e.actual}` : null
