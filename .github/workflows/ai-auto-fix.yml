@@ -1,0 +1,54 @@
+name: AI CI Auto-Fixer
+
+on:
+  workflow_run:
+    workflows: ["CI Deploy Guardrail", "Unit Tests"]
+    types:
+      - completed
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  auto-fix:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          # We need to checkout the branch that triggered the failed run
+          ref: ${{ github.event.workflow_run.head_branch }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: npm install @google/generative-ai axios
+
+      - name: Run AI Fixer
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: node .github/scripts/ai_ci_fixer.js
+
+      - name: Commit and Push AI Fix
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Check if there are any changes made by the AI script
+          if [[ -n $(git status -s) ]]; then
+            echo "Changes detected! Pushing AI fix..."
+            git add .
+            git commit -m "🤖 AI Auto-Fix: Addressed CI Failure"
+            git push
+          else
+            echo "No fixes were applied by the AI."
+          fi
