@@ -67,6 +67,13 @@ export function EconomicCalendar({ timezone }: { timezone: 'UTC' | 'IST' }) {
                 <div className="flex justify-between items-center mb-1">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-bold text-orange-400 bg-orange-400/10 px-1 rounded">{e.country}</span>
+                    <span className={`text-[8px] font-bold px-1 rounded ${
+                      e.impact === 'High' ? 'text-red-400 bg-red-400/10' : 
+                      e.impact === 'Medium' ? 'text-orange-400 bg-orange-400/10' : 
+                      'text-yellow-400 bg-yellow-400/10'
+                    }`}>
+                      {e.impact ? e.impact.toUpperCase() : 'HIGH'}
+                    </span>
                     <span className="text-[11px] font-medium text-gray-200">{e.event}</span>
                   </div>
                   <span className="text-[10px] font-bold text-gray-400 whitespace-nowrap text-right">
