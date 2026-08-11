@@ -32,7 +32,7 @@ jobs:
       run: |
         npm start &
         # Wait for the server to spin up and apply migrations
-        npx wait-on tcp:3000 -t 30000
+        npx wait-on http-get://127.0.0.1:3000/api/data-pipeline/status -t 30000
 
     - name: Run CI Backtest Runner
       working-directory: ./backend
