@@ -26,15 +26,5 @@ jobs:
         working-directory: ./frontend
         run: npm run build
 
-      # If the build above fails, the workflow stops here. The deployment is aborted.
-      
-      - name: Trigger Render Deployment
-        if: success()
-        run: |
-          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
-            echo "Error: RENDER_DEPLOY_HOOK_URL secret is not set!"
-            echo "Please add it in GitHub Repository Settings -> Secrets and variables -> Actions"
-            exit 1
-          fi
-          echo "Build successful! Triggering Render deployment..."
-          curl -s -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+      # If the build above fails, the workflow stops here and GitHub marks the commit as 'failed'.
+      # Render's "After CI Checks Pass" setting will see this failure and block the deployment.
