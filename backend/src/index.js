@@ -317,9 +317,9 @@ async function bootstrap() {
     }
   });
 
-  // News endpoint – uses Finnhub free forex news feed
+  // News endpoint – uses GitHub Proxy for ForexFactory Latest Stories
   let newsCache = { data: [], fetchedAt: 0 };
-  const NEWS_TTL_MS = 5 * 60 * 1000; // 5 minutes
+  const NEWS_TTL_MS = 60 * 60 * 1000;
 
   app.get('/api/news/:symbol', async (req, res) => {
     try {
@@ -327,16 +327,43 @@ async function bootstrap() {
       if (now - newsCache.fetchedAt < NEWS_TTL_MS && newsCache.data.length > 0) {
         return res.json(newsCache.data);
       }
-      const apiKey = process.env.FINNHUB_API_KEY;
-      if (!apiKey) {
-        // Fallback: return empty so frontend shows gracefully
-        return res.json([]);
-      }
-      const articles = await fetchForexNews(apiKey, 10);
+
+      // Fetch the raw cached ForexFactory News XML from GitHub
+      const response = await axios.get('https://raw.githubusercontent.com/daemonklaus5/MairaFX/master/.github/data/ff_news.xml', {
+        timeout: 5000
+      });
+
+      const { XMLParser } = require('fast-xml-parser');
+      const parser = new XMLParser();
+      const parsed = parser.parse(response.data);
+      
+      const items = parsed?.rss?.channel?.item || [];
+      const stories = Array.isArray(items) ? items : [items];
+
+      const articles = stories.map((item) => {
+        // ForexFactory title format is usually "Source: Headline"
+        let source = "ForexFactory";
+        let headline = item.title || "";
+        
+        if (headline.includes(": ")) {
+          const parts = headline.split(": ");
+          source = parts[0];
+          headline = parts.slice(1).join(": ");
+        }
+
+        return {
+          headline,
+          source,
+          url: item.link || "",
+          datetime: item.pubDate ? new Date(item.pubDate).getTime() / 1000 : Math.floor(Date.now() / 1000),
+          relevance: Math.floor(Math.random() * 40) + 60 // Mock relevance score
+        };
+      }).filter(a => a.headline).slice(0, 5); // Limit to top 5 stories
+
       newsCache = { data: articles, fetchedAt: now };
       res.json(articles);
     } catch (err) {
-      console.error('News fetch error:', err.message);
+      console.error("News API Error:", err.message);
       res.json(newsCache.data); // serve stale on error
     }
   });

@@ -15,22 +15,34 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Fetch ForexFactory JSON
+      - name: Fetch ForexFactory Data
         run: |
           mkdir -p .github/data
+          
+          # Fetch Calendar
           curl -sL "https://nfs.faireconomy.media/ff_calendar_thisweek.json" -o .github/data/ff_cache.json
           
-          # Verify we got valid JSON and not a Cloudflare HTML block
+          # Verify Calendar
           if ! grep -q '"title"' .github/data/ff_cache.json; then
             echo "Error: Did not receive valid JSON. Cloudflare might have blocked the request."
             exit 1
+          fi
+
+          # Fetch News (Latest Stories)
+          # We use a standard User-Agent just in case it helps bypass basic checks
+          curl -sL -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" "https://www.forexfactory.com/news.xml" -o .github/data/ff_news.xml
+          
+          # Verify News XML
+          if ! grep -q '<?xml' .github/data/ff_news.xml; then
+            echo "Warning: Did not receive valid XML for news. Cloudflare might have blocked the news request."
+            # We don't exit 1 here, so that calendar updates still go through even if news fails
           fi
 
       - name: Commit and Push (Skip CI)
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add .github/data/ff_cache.json
+          git add .github/data/ff_cache.json .github/data/ff_news.xml
           
           if [[ -n $(git status -s) ]]; then
             echo "New data found, committing..."
