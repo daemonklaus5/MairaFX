@@ -6,26 +6,10 @@ module.exports = function(engine) {
 
   // 1. Retail Sentiment (Mocked for now)
   router.get('/sentiment', (req, res) => {
-    const pairs = ['EUR_USD', 'GBP_USD', 'USD_JPY', 'AUD_USD', 'USD_CHF', 'USD_CAD', 'NZD_USD'];
-    const minute = new Date().getMinutes();
-    
-    const results = pairs.map(symbol => {
-      const base = (symbol.charCodeAt(0) + symbol.charCodeAt(1)) % 100;
-      let longPercent = (base + minute) % 100;
-      
-      if (longPercent < 20) longPercent += 20;
-      if (longPercent > 80) longPercent -= 20;
-      
-      return {
-        symbol,
-        longPercent: Math.round(longPercent),
-        shortPercent: Math.round(100 - longPercent)
-      };
-    });
-
-    res.json({
-      data: results,
-      source: "Mock Broker API (Placeholder)"
+    // As per user request, we are removing all fake/placeholder data.
+    // Real retail sentiment (IG Client Sentiment, OANDA Order Book, etc.) requires premium endpoints or specific broker permissions.
+    res.status(403).json({ 
+      error: "Real Retail Sentiment data requires a Premium Broker Feed (e.g. OANDA Order Book API or IG Client Sentiment). Free tier access is not available." 
     });
   });
 
