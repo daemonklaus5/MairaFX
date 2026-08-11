@@ -163,7 +163,7 @@ async function bootstrap() {
 
       const recentRes = await db.query(`
         SELECT * FROM ai_verdicts 
-        ${whereClause}
+        ${whereClause} AND verdict != 'WAIT'
         ORDER BY timestamp DESC 
         LIMIT 50
       `, params);
