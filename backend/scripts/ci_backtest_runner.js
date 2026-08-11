@@ -9,7 +9,7 @@ async function run() {
   try {
     console.log("Triggering Backtest via API...");
     // 1. Trigger Backtest
-    const startRes = await fetch('http://localhost:5000/api/backtest/run', {
+    const startRes = await fetch('http://localhost:3000/api/backtest/run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pairs: ['EUR_USD'], timeframe: '15m', useAi: true })
@@ -23,7 +23,7 @@ async function run() {
     let isRunning = true;
     while (isRunning) {
       await new Promise(r => setTimeout(r, 5000));
-      const progRes = await fetch(`http://localhost:5000/api/backtest/progress/${encodeURIComponent(runId)}`);
+      const progRes = await fetch(`http://localhost:3000/api/backtest/progress/${encodeURIComponent(runId)}`);
       if (progRes.ok) {
         const progress = await progRes.json();
         console.log(`Progress: ${progress.current}/${progress.total} (${progress.status})`);
