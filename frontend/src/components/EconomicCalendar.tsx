@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar } from 'lucide-react';
+import { Calendar, Factory } from 'lucide-react';
 
 interface CalEvent {
   id: number;
@@ -66,35 +66,37 @@ export function EconomicCalendar({ timezone }: { timezone: 'UTC' | 'IST' }) {
               <div key={e.id} className={`p-2 rounded border ${isPast ? 'bg-gray-800/30 border-gray-800' : 'bg-gray-800/60 border-gray-700'}`}>
                 <div className="flex justify-between items-center mb-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-orange-400 bg-orange-400/10 px-1 rounded">{e.country}</span>
-                    <span className={`text-[8px] font-bold px-1 rounded ${
-                      e.impact === 'High' ? 'text-red-400 bg-red-400/10' : 
-                      e.impact === 'Medium' ? 'text-orange-400 bg-orange-400/10' : 
-                      'text-yellow-400 bg-yellow-400/10'
-                    }`}>
-                      {e.impact ? e.impact.toUpperCase() : 'HIGH'}
-                    </span>
+                    <Factory 
+                      className={`w-3.5 h-3.5 ${
+                        e.impact === 'High' ? 'text-red-500 fill-red-500' : 
+                        e.impact === 'Medium' ? 'text-yellow-500 fill-yellow-500' : 
+                        'text-yellow-300 fill-yellow-300'
+                      }`} 
+                    />
                     <span className="text-[11px] font-medium text-gray-200">{e.event}</span>
                   </div>
                   <span className="text-[10px] font-bold text-gray-400 whitespace-nowrap text-right">
                     {new Date(e.time).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: timezone === 'IST' ? 'Asia/Kolkata' : 'UTC' })}
                   </span>
                 </div>
-                <div className="flex gap-4 mt-1.5 ml-8">
-                  <div className="flex flex-col">
-                    <span className="text-[8px] text-gray-500 uppercase">Forecast</span>
-                    <span className="text-[10px] font-mono text-gray-300">{e.estimate}</span>
+                <div className="flex justify-between items-end mt-1.5">
+                  <div className="flex gap-4 ml-6">
+                    <div className="flex flex-col">
+                      <span className="text-[8px] text-gray-500 uppercase">Forecast</span>
+                      <span className="text-[10px] font-mono text-gray-300">{e.estimate}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[8px] text-gray-500 uppercase">Previous</span>
+                      <span className="text-[10px] font-mono text-gray-300">{e.previous}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[8px] text-gray-500 uppercase">Actual</span>
+                      <span className={`text-[10px] font-mono font-bold ${e.actual ? 'text-primary' : 'text-gray-500'}`}>
+                        {e.actual || '--'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-[8px] text-gray-500 uppercase">Previous</span>
-                    <span className="text-[10px] font-mono text-gray-300">{e.previous}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[8px] text-gray-500 uppercase">Actual</span>
-                    <span className={`text-[10px] font-mono font-bold ${e.actual ? 'text-primary' : 'text-gray-500'}`}>
-                      {e.actual || '--'}
-                    </span>
-                  </div>
+                  <span className="text-[10px] font-bold text-orange-400 bg-orange-400/10 px-1 rounded">{e.country}</span>
                 </div>
               </div>
             );
