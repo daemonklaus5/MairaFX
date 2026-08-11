@@ -59,7 +59,6 @@ export function Chart({ symbol, timeframe, timezone }: ChartProps) {
         gridColor: 'rgba(42, 46, 57, 0.3)',
         studies: [],
         disabled_features: [
-          'use_localstorage_for_settings',
           'header_symbol_search',
           'header_compare',
         ],
