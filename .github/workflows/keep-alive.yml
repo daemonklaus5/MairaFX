@@ -2,8 +2,8 @@ name: Keep Render Alive
 
 on:
   schedule:
-    # Run every 10 minutes
-    - cron: '*/10 * * * *'
+    # Run every 5 minutes to compensate for GitHub Actions throttling
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 jobs:
