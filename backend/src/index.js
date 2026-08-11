@@ -323,6 +323,7 @@ async function bootstrap() {
 
   app.get('/api/news/:symbol', async (req, res) => {
     try {
+      const axios = require('axios');
       const now = Date.now();
       if (now - newsCache.fetchedAt < NEWS_TTL_MS && newsCache.data.length > 0) {
         return res.json(newsCache.data);
