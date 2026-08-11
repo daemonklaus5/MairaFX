@@ -98,43 +98,36 @@ module.exports = function(engine) {
     });
   });
 
-  // 4. Economic Calendar
+  // 4. Economic Calendar (Using GitHub Proxy)
   router.get('/calendar', async (req, res) => {
     try {
       const axios = require('axios');
       
-      // Calculate date range for the next 3 days
-      const now = new Date();
-      const fromDate = now.toISOString();
-      const toDate = new Date(now.getTime() + (3 * 24 * 60 * 60 * 1000)).toISOString();
-      
-      // Use TradingView's API (bypasses Cloudflare on Render and provides Actual values)
-      const response = await axios.get(`https://economic-calendar.tradingview.com/events?from=${encodeURIComponent(fromDate)}&to=${encodeURIComponent(toDate)}`, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-          'Origin': 'https://www.tradingview.com',
-          'Accept': 'application/json'
-        },
+      // Fetch the raw cached ForexFactory data from GitHub to bypass Cloudflare
+      const response = await axios.get('https://raw.githubusercontent.com/daemonklaus5/MairaFX/master/.github/data/ff_cache.json', {
         timeout: 5000
       });
 
-      const events = response.data?.result || [];
+      const events = response.data;
+      if (!Array.isArray(events)) {
+        return res.json([]);
+      }
 
-      // Filter for high and medium impact events (importance 1 and 0) and map to our format
-      const highImpact = events
-        .filter(e => e.importance >= 0)
+      // Filter for high and medium impact events and map to our format
+      const filteredEvents = events
+        .filter(e => e.impact === 'High' || e.impact === 'Medium')
         .map((e, i) => ({
           id: i + 1,
           time: new Date(e.date).getTime(),
           country: e.country,
           event: e.title,
-          impact: e.importance === 1 ? 'High' : 'Medium',
-          previous: e.previous !== undefined && e.previous !== null ? `${e.previous}` : '-',
-          estimate: e.forecast !== undefined && e.forecast !== null ? `${e.forecast}` : '-',
-          actual: e.actual !== undefined && e.actual !== null ? `${e.actual}` : null
+          impact: e.impact,
+          previous: e.previous || '-',
+          estimate: e.forecast || '-',
+          actual: null // ForexFactory free JSON does not include actuals
         }));
 
-      res.json(highImpact);
+      res.json(filteredEvents);
     } catch (err) {
       console.error("Calendar API Error:", err.message);
       res.status(500).json({ error: "Failed to fetch calendar data." });
