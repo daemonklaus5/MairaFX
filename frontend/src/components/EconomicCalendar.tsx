@@ -15,15 +15,23 @@ interface CalEvent {
 export function EconomicCalendar({ timezone }: { timezone: 'UTC' | 'IST' }) {
   const [events, setEvents] = useState<CalEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/dashboard/calendar')
-      .then(res => res.json())
+      .then(async res => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to fetch calendar');
+        return data;
+      })
       .then(d => {
         setEvents(d);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((err) => {
+        setApiError(err.message);
+        setLoading(false);
+      });
   }, []);
 
   return (
@@ -42,6 +50,13 @@ export function EconomicCalendar({ timezone }: { timezone: 'UTC' | 'IST' }) {
               <div className="h-4 w-full bg-gray-800 rounded" />
             </div>
           ))}
+        </div>
+      ) : apiError ? (
+        <div className="p-3 border border-red-500/20 bg-red-500/10 rounded flex flex-col items-center justify-center text-center space-y-2 mt-2">
+          <Calendar className="w-6 h-6 text-red-400/50" />
+          <p className="text-xs text-red-400/80 leading-relaxed">
+            {apiError}
+          </p>
         </div>
       ) : (
         <div className="space-y-2">
