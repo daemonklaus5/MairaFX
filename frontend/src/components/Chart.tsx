@@ -57,6 +57,11 @@ export function Chart({ symbol, timeframe, timezone }: ChartProps) {
         save_image: false,
         backgroundColor: '#0b0e14',
         gridColor: 'rgba(42, 46, 57, 0.3)',
+        client_id: 'tradingview.com',
+        user_id: 'mairafx_trader',
+        charts_storage_url: 'https://saveload.tradingview.com',
+        charts_storage_api_version: '1.1',
+        load_last_chart: true,
         studies: [],
         disabled_features: [
           'header_symbol_search',
