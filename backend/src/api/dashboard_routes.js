@@ -100,12 +100,40 @@ module.exports = function(engine) {
 
   // 4. Economic Calendar
   router.get('/calendar', async (req, res) => {
-    // Finnhub restricts Economic Calendar access to Premium tiers.
-    // ForexFactory and others block free access via Cloudflare.
-    // As per user request, we will not fake this data.
-    res.status(403).json({ 
-      error: "Real economic calendar data requires a Premium Finnhub API Key. Free tier access is restricted." 
-    });
+    try {
+      const axios = require('axios');
+      const response = await axios.get('https://nfs.faireconomy.media/ff_calendar_thisweek.json', {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*'
+        },
+        timeout: 5000
+      });
+
+      const events = response.data;
+      if (!Array.isArray(events)) {
+        return res.json([]);
+      }
+
+      // Filter for high impact events
+      const highImpact = events
+        .filter(e => e.impact === 'High')
+        .map((e, i) => ({
+          id: i + 1,
+          time: new Date(e.date).getTime(),
+          country: e.country,
+          event: e.title,
+          impact: e.impact,
+          previous: e.previous || '-',
+          estimate: e.forecast || '-',
+          actual: null // ForexFactory free JSON does not include actuals
+        }));
+
+      res.json(highImpact);
+    } catch (err) {
+      console.error("ForexFactory API Error:", err.message);
+      res.status(500).json({ error: "Failed to fetch calendar from ForexFactory." });
+    }
   });
 
   return router;
