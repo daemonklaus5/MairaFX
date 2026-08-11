@@ -116,51 +116,12 @@ module.exports = function(engine) {
 
   // 4. Economic Calendar
   router.get('/calendar', async (req, res) => {
-    // Ideally we hit Finnhub here: https://finnhub.io/api/v1/calendar/economic?token=XYZ
-    // But since calendar data is often restricted or spotty on free tiers,
-    // we'll return a robust mock of today's high-impact events for demonstration.
-    
-    const now = new Date();
-    
-    // Generate timestamps spanning a few days
-    const time1 = now.getTime() - (2 * 60 * 60 * 1000); // 2 hours ago
-    const time2 = now.getTime() + (24 * 60 * 60 * 1000); // Tomorrow
-    const time3 = now.getTime() + (5 * 24 * 60 * 60 * 1000); // 5 days from now
-
-    const mockEvents = [
-      {
-        id: 1,
-        time: time1,
-        country: 'US',
-        event: 'Core CPI m/m',
-        impact: 'High',
-        previous: '0.2%',
-        estimate: '0.3%',
-        actual: now.getTime() > time1 ? '0.4%' : null
-      },
-      {
-        id: 2,
-        time: time2,
-        country: 'US',
-        event: 'ISM Manufacturing PMI',
-        impact: 'High',
-        previous: '49.1',
-        estimate: '49.5',
-        actual: now.getTime() > time2 ? '48.9' : null
-      },
-      {
-        id: 3,
-        time: time3,
-        country: 'US',
-        event: 'FOMC Meeting Minutes',
-        impact: 'High',
-        previous: '-',
-        estimate: '-',
-        actual: null
-      }
-    ];
-
-    res.json(mockEvents);
+    // Finnhub restricts Economic Calendar access to Premium tiers.
+    // ForexFactory and others block free access via Cloudflare.
+    // As per user request, we will not fake this data.
+    res.status(403).json({ 
+      error: "Real economic calendar data requires a Premium Finnhub API Key. Free tier access is restricted." 
+    });
   });
 
   return router;
