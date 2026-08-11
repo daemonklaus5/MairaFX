@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Factory } from 'lucide-react';
+import { Calendar, Flame } from 'lucide-react';
 
 interface CalEvent {
   id: number;
@@ -66,7 +66,7 @@ export function EconomicCalendar({ timezone }: { timezone: 'UTC' | 'IST' }) {
               <div key={e.id} className={`p-2 rounded border ${isPast ? 'bg-gray-800/30 border-gray-800' : 'bg-gray-800/60 border-gray-700'}`}>
                 <div className="flex justify-between items-center mb-1">
                   <div className="flex items-center gap-2">
-                    <Factory 
+                    <Flame 
                       className={`w-3.5 h-3.5 ${
                         e.impact === 'High' ? 'text-red-500 fill-red-500' : 
                         e.impact === 'Medium' ? 'text-yellow-500 fill-yellow-500' : 
