@@ -220,11 +220,10 @@ export default function App() {
             {/* Grid for Widgets */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               
-              {/* Column 1: Sentiment & Key Drivers */}
+              {/* Column 1: Sentiment */}
               <div className="flex flex-col gap-4">
                 <CotBadge symbol={symbol} />
                 <RetailSentiment />
-                <KeyDriversPanel symbol={symbol} />
               </div>
 
               {/* Column 2: Market Conditions */}
@@ -234,9 +233,10 @@ export default function App() {
                 <SessionVisualizer />
               </div>
 
-              {/* Column 3: Macro */}
+              {/* Column 3: Macro & Key Drivers */}
               <div className="flex flex-col gap-4">
                 <EconomicCalendar timezone={timezone} />
+                <KeyDriversPanel symbol={symbol} />
               </div>
 
             </div>

@@ -49,16 +49,16 @@ export function EconomicCalendar({ timezone }: { timezone: 'UTC' | 'IST' }) {
             const isPast = e.actual !== null;
             return (
               <div key={e.id} className={`p-2 rounded border ${isPast ? 'bg-gray-800/30 border-gray-800' : 'bg-gray-800/60 border-gray-700'}`}>
-                <div className="flex justify-between items-start mb-1">
+                <div className="flex justify-between items-center mb-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-gray-400 w-auto whitespace-nowrap">
-                      {new Date(e.time).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: timezone === 'IST' ? 'Asia/Kolkata' : 'UTC' })}
-                    </span>
                     <span className="text-[10px] font-bold text-orange-400 bg-orange-400/10 px-1 rounded">{e.country}</span>
                     <span className="text-[11px] font-medium text-gray-200">{e.event}</span>
                   </div>
+                  <span className="text-[10px] font-bold text-gray-400 whitespace-nowrap text-right">
+                    {new Date(e.time).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: timezone === 'IST' ? 'Asia/Kolkata' : 'UTC' })}
+                  </span>
                 </div>
-                <div className="flex gap-4 mt-1.5 ml-14">
+                <div className="flex gap-4 mt-1.5 ml-8">
                   <div className="flex flex-col">
                     <span className="text-[8px] text-gray-500 uppercase">Forecast</span>
                     <span className="text-[10px] font-mono text-gray-300">{e.estimate}</span>

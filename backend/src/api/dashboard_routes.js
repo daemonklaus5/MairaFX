@@ -121,12 +121,11 @@ module.exports = function(engine) {
     // we'll return a robust mock of today's high-impact events for demonstration.
     
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
     
-    // Generate timestamps for today (UTC)
-    const time1 = new Date(`${todayStr}T13:30:00Z`).getTime();
-    const time2 = new Date(`${todayStr}T14:00:00Z`).getTime();
-    const time3 = new Date(`${todayStr}T18:00:00Z`).getTime();
+    // Generate timestamps spanning a few days
+    const time1 = now.getTime() - (2 * 60 * 60 * 1000); // 2 hours ago
+    const time2 = now.getTime() + (24 * 60 * 60 * 1000); // Tomorrow
+    const time3 = now.getTime() + (5 * 24 * 60 * 60 * 1000); // 5 days from now
 
     const mockEvents = [
       {
