@@ -1,0 +1,40 @@
+name: CI Deploy Guardrail
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Verify Frontend Build (Dry-Run)
+        working-directory: ./frontend
+        run: npm run build
+
+      # If the build above fails, the workflow stops here. The deployment is aborted.
+      
+      - name: Trigger Render Deployment
+        if: success()
+        run: |
+          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+            echo "Error: RENDER_DEPLOY_HOOK_URL secret is not set!"
+            echo "Please add it in GitHub Repository Settings -> Secrets and variables -> Actions"
+            exit 1
+          fi
+          echo "Build successful! Triggering Render deployment..."
+          curl -s -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
