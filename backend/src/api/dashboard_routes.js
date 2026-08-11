@@ -104,7 +104,8 @@ module.exports = function(engine) {
       const axios = require('axios');
       
       // Fetch the raw cached ForexFactory data from GitHub to bypass Cloudflare
-      const response = await axios.get('https://raw.githubusercontent.com/daemonklaus5/MairaFX/master/.github/data/ff_cache.json', {
+      const cacheBuster = Date.now();
+      const response = await axios.get(`https://raw.githubusercontent.com/daemonklaus5/MairaFX/master/.github/data/ff_cache.json?t=${cacheBuster}`, {
         timeout: 5000
       });
 

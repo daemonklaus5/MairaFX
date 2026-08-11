@@ -328,8 +328,9 @@ async function bootstrap() {
         return res.json(newsCache.data);
       }
 
-      // Fetch the raw cached ForexFactory News XML from GitHub
-      const response = await axios.get('https://raw.githubusercontent.com/daemonklaus5/MairaFX/master/.github/data/ff_news.xml', {
+      // Fetch the raw cached ForexFactory News XML from GitHub (using cache buster)
+      const cacheBuster = Date.now();
+      const response = await axios.get(`https://raw.githubusercontent.com/daemonklaus5/MairaFX/master/.github/data/ff_news.xml?t=${cacheBuster}`, {
         timeout: 5000
       });
 
