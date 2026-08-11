@@ -216,18 +216,40 @@ async function bootstrap() {
   });
 
   app.get('/api/data-pipeline/export', async (req, res) => {
+    let client;
     try {
+      const QueryStream = require('pg-query-stream');
       const db = require('./db');
-      const rowsRes = await db.query('SELECT symbol, timeframe, timestamp, open, high, low, close, volume FROM candles ORDER BY symbol, timeframe, timestamp ASC');
-      let csv = 'timestamp,symbol,timeframe,open,high,low,close,volume\n';
-      rowsRes.rows.forEach(r => {
-        csv += `${new Date(r.timestamp).toISOString()},${r.symbol},${r.timeframe},${r.open},${r.high},${r.low},${r.close},${r.volume}\n`;
-      });
+      
+      client = await db.pool.connect();
+      const query = new QueryStream('SELECT symbol, timeframe, timestamp, open, high, low, close, volume FROM candles ORDER BY symbol, timeframe, timestamp ASC');
+      const stream = client.query(query);
+      
       res.header('Content-Type', 'text/csv');
       res.attachment('candles_history.csv');
-      return res.send(csv);
+      res.write('timestamp,symbol,timeframe,open,high,low,close,volume\n');
+      
+      stream.on('data', (r) => {
+        const line = `${new Date(r.timestamp).toISOString()},${r.symbol},${r.timeframe},${r.open},${r.high},${r.low},${r.close},${r.volume}\n`;
+        res.write(line);
+      });
+      
+      stream.on('end', () => {
+        if (client) client.release();
+        res.end();
+      });
+
+      stream.on('error', (err) => {
+        console.error('Stream error:', err);
+        if (client) client.release();
+        client = null;
+        if (!res.headersSent) res.status(500).json({ error: err.message });
+        else res.end();
+      });
+
     } catch (e) {
-      res.status(500).json({ error: e.message });
+      if (client) client.release();
+      if (!res.headersSent) res.status(500).json({ error: e.message });
     }
   });
 
